@@ -1,6 +1,7 @@
 //
 //	Code repository for GPU noise development blog
-//	http://briansharpe.wordpress.com/
+//	http://briansharpe.wordpress.com
+//	https://github.com/BrianSharpe
 //
 //	I'm not one for copywrites.  Use the code however you wish.
 //	All I ask is that credit be given back to the blog or myself when appropriate.
@@ -9,7 +10,8 @@
 //
 //	Brian Sharpe
 //	brisharpe@yahoo.com
-//	http://briansharpe.wordpress.com/
+//	http://briansharpe.wordpress.com
+//	https://github.com/BrianSharpe
 //
 
 #version 120
@@ -32,15 +34,43 @@ vec4 SGPP_hash_2D( vec2 gridcell )
 	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
 	return SGPP_resolve( SGPP_permute( SGPP_permute( hash_coord.xzxz ) + hash_coord.yyww ) );
 }
+void SGPP_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 ) 
+{
+	//    gridcell is assumed to be an integer coordinate
+	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
+	hash_0 = SGPP_permute( SGPP_permute( hash_coord.xzxz ) + hash_coord.yyww );
+	hash_1 = SGPP_resolve( SGPP_permute( hash_0 ) );
+	hash_0 = SGPP_resolve( hash_0 );
+}
 void SGPP_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash ) 
 {
 	//    gridcell is assumed to be an integer coordinate
 	gridcell = SGPP_coord_prepare( gridcell );
 	vec3 gridcell_inc1 = gridcell + 1.0.xxx;
 	gridcell_inc1 = mix( gridcell_inc1, 0.0.xxx, equal( gridcell_inc1, 289.0.xxx ) );
-	vec4 p = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
-	lowz_hash = SGPP_resolve( SGPP_permute( p + gridcell.zzzz ) );
-	highz_hash = SGPP_resolve( SGPP_permute( p + gridcell_inc1.zzzz ) );
+	highz_hash = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
+	lowz_hash = SGPP_resolve( SGPP_permute( highz_hash + gridcell.zzzz ) );
+	highz_hash = SGPP_resolve( SGPP_permute( highz_hash + gridcell_inc1.zzzz ) );
+}
+void SGPP_hash_3D( 	vec3 gridcell, 
+					out vec4 lowz_hash_0,
+					out vec4 lowz_hash_1,
+					out vec4 lowz_hash_2,
+					out vec4 highz_hash_0,
+					out vec4 highz_hash_1,
+					out vec4 highz_hash_2	) 
+{
+	//    gridcell is assumed to be an integer coordinate
+	gridcell = SGPP_coord_prepare( gridcell );
+	vec3 gridcell_inc1 = gridcell + 1.0.xxx;
+	gridcell_inc1 = mix( gridcell_inc1, 0.0.xxx, equal( gridcell_inc1, 289.0.xxx ) );
+	highz_hash_2 = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
+	lowz_hash_0 = SGPP_resolve( lowz_hash_2 = SGPP_permute( highz_hash_2 + gridcell.zzzz ) );
+	highz_hash_0 = SGPP_resolve( highz_hash_2 = SGPP_permute( highz_hash_2 + gridcell_inc1.zzzz ) );
+	lowz_hash_1 = SGPP_resolve( lowz_hash_2 = SGPP_permute( lowz_hash_2 ) );
+	highz_hash_1 = SGPP_resolve( highz_hash_2 = SGPP_permute( highz_hash_2 ) );
+	lowz_hash_2 = SGPP_resolve( SGPP_permute( lowz_hash_2 ) );
+	highz_hash_2 = SGPP_resolve( SGPP_permute( highz_hash_2 ) );
 }
 
 
@@ -296,14 +326,14 @@ float Perlin3D( vec3 P )
 	//	[0,1,1] [0,-1,1] [0,1,-1] [0,-1,-1]
 	//
 	hash_lowz *= 3.0;
-	vec4 grad_results_0_0 = mix( vec4( Pf.yy, Pf_min1.yy ), vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ), lessThan( hash_lowz, 2.0.xxxx ) );
-	vec4 grad_results_0_1 = mix( vec4( Pf.zzzz ), vec4( Pf.yy, Pf_min1.yy ), lessThan( hash_lowz, 1.0.xxxx ) );
+	vec4 grad_results_0_0 = mix( vec2( Pf.y, Pf_min1.y ).xxyy, vec2( Pf.x, Pf_min1.x ).xyxy, lessThan( hash_lowz, 2.0.xxxx ) );
+	vec4 grad_results_0_1 = mix( Pf.zzzz, vec2( Pf.y, Pf_min1.y ).xxyy, lessThan( hash_lowz, 1.0.xxxx ) );
 	hash_lowz = fract( hash_lowz ) - 0.5;
 	vec4 grad_results_0 = grad_results_0_0 * sign( hash_lowz ) + grad_results_0_1 * sign( abs( hash_lowz ) - 0.25.xxxx );
 	
 	hash_highz *= 3.0;
-	vec4 grad_results_1_0 = mix( vec4( Pf.yy, Pf_min1.yy ), vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ), lessThan( hash_highz, 2.0.xxxx ) );
-	vec4 grad_results_1_1 = mix( vec4( Pf_min1.zzzz ), vec4( Pf.yy, Pf_min1.yy ), lessThan( hash_highz, 1.0.xxxx ) );
+	vec4 grad_results_1_0 = mix( vec2( Pf.y, Pf_min1.y ).xxyy, vec2( Pf.x, Pf_min1.x ).xyxy, lessThan( hash_highz, 2.0.xxxx ) );
+	vec4 grad_results_1_1 = mix( Pf_min1.zzzz, vec2( Pf.y, Pf_min1.y ).xxyy, lessThan( hash_highz, 1.0.xxxx ) );
 	hash_highz = fract( hash_highz ) - 0.5;
 	vec4 grad_results_1 = grad_results_1_0 * sign( hash_highz ) + grad_results_1_1 * sign( abs( hash_highz ) - 0.25.xxxx );
 	
@@ -343,3 +373,108 @@ float Perlin3D( vec3 P )
 #endif
 }
 
+
+//	convert a 0.0->1.0 sample to a -1.0->1.0 sample weighted towards the extremes
+vec4 Cellular_weight_samples( vec4 samples ) 
+{
+	samples = samples * 2.0 - 1.0;
+	//return (1.0 - samples * samples) * sign(samples);	// square
+	return (samples * samples * samples) - sign(samples);	// cubic (even more variance)
+}
+
+//
+//	Cellular Noise 2D
+//	Based off Stefan Gustavson's work at http://www.itn.liu.se/~stegu/GLSL-cellular
+//
+//	Speed up by using 2x2 search window instead of 3x3
+//	produces range of 0.0->~1.0 ( max theoritical value of sqrt( 0.75^2 * 2.0 ) ~= 1.0607 for dist and ( 0.75^2 * 2.0 ) = 1.125 for dist sq, but should rarely reach that )
+//
+float Cellular2D(vec2 P) 
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec2 Pf = P - Pi;
+	
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 ox, oy;
+	SGPP_hash_2D( Pi, ox, oy );
+	
+	//	generate the 4 random points
+#if 1
+	//	restrict the random point offset to eliminate artifacts
+	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+	const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=sqrt( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=sqrt( (0.5+x)^2 + x^2 )
+	ox = Cellular_weight_samples( ox ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	oy = Cellular_weight_samples( oy ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+#else
+	//	non-weighted jitter window.  jitter window of 0.4 will give results similar to Stefans original implementation
+	//	nicer looking, faster, but has minor artifacts.  ( discontinuities in signal )
+	const float JITTER_WINDOW = 0.4;
+	ox = ox * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	oy = oy * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+#endif
+
+	//	return the closest squared distance
+	vec4 dx = Pf.xxxx - ox;
+	vec4 dy = Pf.yyyy - oy;
+	vec4 d = dx * dx + dy * dy;
+	d.xy = min(d.xy, d.zw);
+	return min(d.x, d.y);
+}
+
+
+//
+//	Cellular Noise 3D
+//	Based off Stefan Gustavson's work at http://www.itn.liu.se/~stegu/GLSL-cellular
+//
+//	Speed up by using 2x2x2 search window instead of 3x3x3
+//	produces range of 0.0->~1.0  ( max theoritical value of sqrt( 0.666666^2 * 3.0 ) ~= 1.155 for dist and ( 0.666666^2 * 3.0 ) ~= 1.33333 for dist sq, but should rarely reach that )
+//
+float Cellular3D(vec3 P) 
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+	
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 ox1, oy1, oz1, ox2, oy2, oz2;
+	SGPP_hash_3D( Pi, ox1, oy1, oz1, ox2, oy2, oz2 );
+	
+	//	generate the 8 random points
+#if 1
+	//	restrict the random point offset to eliminate artifacts
+	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+	const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=sqrt( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=sqrt( 2 * (( 0.5 + x )^2) + x * x )
+	ox1 = Cellular_weight_samples( ox1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	oy1 = Cellular_weight_samples( oy1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	ox2 = Cellular_weight_samples( ox2 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	oy2 = Cellular_weight_samples( oy2 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	oz1 = Cellular_weight_samples( oz1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
+	oz2 = Cellular_weight_samples( oz2 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
+#else
+	//	non-weighted jitter window.  jitter window of 0.4 will give results similar to Stefans original implementation
+	//	nicer looking, faster, but has minor artifacts.  ( discontinuities in signal )
+	const float JITTER_WINDOW = 0.4;
+	ox1 = ox1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	oy1 = oy1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	ox2 = ox2 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	oy2 = oy2 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	oz1 = oz1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW);
+	oz2 = oz2 * JITTER_WINDOW * 2.0 + vec4(1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+#endif
+
+	//	return the closest squared distance
+	vec4 dx1 = Pf.xxxx - ox1;
+	vec4 dy1 = Pf.yyyy - oy1;
+	vec4 dz1 = Pf.zzzz - oz1;
+	vec4 dx2 = Pf.xxxx - ox2;
+	vec4 dy2 = Pf.yyyy - oy2;
+	vec4 dz2 = Pf.zzzz - oz2;
+	vec4 d1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+	vec4 d2 = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
+	d1 = min(d1, d2);
+	d1.xy = min(d1.xy, d1.wz);
+	return min(d1.x, d1.y);
+}
