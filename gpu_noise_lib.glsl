@@ -16,6 +16,15 @@
 
 
 //
+//	NoiseLib TODO
+//
+//	1) Ensure portability across different cards
+//	2) 16bit and 24bit implementations of hashes and noises
+//	3) Lift various noise implementations out to individual self-contained files
+//	4) Implement texture-based versions
+//
+
+//
 //	Permutation polynomial idea is from Stefan Gustavson's and Ian McEwan's work at...
 //	http://github.com/ashima/webgl-noise
 //	http://www.itn.liu.se/~stegu/GLSL-cellular
@@ -130,17 +139,30 @@ void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )
 vec4 FAST32_hash_2D( vec2 gridcell )
 {
 	//	gridcell is assumed to be an integer coordinate
-
-	//	tweakable settings....
 	const vec2 OFFSET = vec2( 25.0, 161.0 );
 	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
 	const float SOMEPRIME = 643.0;
-
 	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;	//	truncate the domain
 	P += OFFSET.xyxy;								//	offset to interesting part of the noise
 	P *= P;											//	calculate and return the hash
 	return fract( P.xzxz * P.yyww * ( 1.0 / SOMEPRIME ).xxxx );
+}
+void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
+{
+	//    gridcell is assumed to be an integer coordinate
+	const vec2 OFFSET = vec2( 25.0, 161.0 );
+	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
+	const float SOMEPRIME_0 = 643.0;
+	const float SOMEPRIME_1 = 538.0;
+	//const float SOMEPRIME_2 = 514.0;		//	this is another good number, if anyone ever needs it....
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
+	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
+	P += OFFSET.xyxy;
+	P *= P;
+	P = P.xzxz * P.yyww;
+	hash_0 = fract( P * ( 1.0 / SOMEPRIME_0 ).xxxx );
+	hash_1 = fract( P * ( 1.0 / SOMEPRIME_1 ).xxxx );
 }
 
 
@@ -375,7 +397,7 @@ float Perlin3D( vec3 P )
 	vec3 blend = Interpolation_C2( Pf );
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-	return mix( res1.x, res1.y, blend.x ) * (1.0 / 1.2);	//	mult by (1.0 / 1.2) to scale back to an approximate -1.0->1.0 range  ( TODO: need to find out the extact range.  Initial calcs suggest -1.5->1.5, but not getting that in practice... )
+	return mix( res1.x, res1.y, blend.x ) * (1.0 / 1.2);	//	mult by (1.0 / 1.2) to scale back to an approximate -1.0->1.0 range  ( TODO: need to find out the extact range.  Initial thoughts suggest -1.5->1.5, but not getting that in practice... )
 
 #endif
 }
@@ -405,13 +427,14 @@ float Cellular2D(vec2 P)
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 ox, oy;
-	SGPP_hash_2D( Pi, ox, oy );
+	FAST32_hash_2D( Pi, ox, oy );
+	//SGPP_hash_2D( Pi, ox, oy );
 
 	//	generate the 4 random points
 #if 1
 	//	restrict the random point offset to eliminate artifacts
 	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
-	const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=sqrt( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=sqrt( (0.5+x)^2 + x^2 )
+	const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=( (0.5+x)^2 + x^2 )
 	ox = Cellular_weight_samples( ox ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
 	oy = Cellular_weight_samples( oy ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
 #else
@@ -453,7 +476,7 @@ float Cellular3D(vec3 P)
 #if 1
 	//	restrict the random point offset to eliminate artifacts
 	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
-	const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=sqrt( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=sqrt( 2 * (( 0.5 + x )^2) + x * x )
+	const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=( 2 * (( 0.5 + x )^2) + x * x )
 	ox1 = Cellular_weight_samples( ox1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
 	oy1 = Cellular_weight_samples( oy1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
 	ox2 = Cellular_weight_samples( ox2 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
@@ -554,4 +577,38 @@ float PolkaDot3D( 	vec3 P,
 	return Falloff_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
 //	PolkaDot3D_FixedRadius, PolkaDot3D_FixedValue, PolkaDot3D_FixedRadius_FixedValue TODO
+
+//
+//	Stars2D
+//
+//	procedural texture for creating a starry background  ( NOTE: should be combined with a nebula/space-like texture )
+//
+float Stars2D(	vec2 P,
+				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
+				float max_dimness,					//	the maximal dimness of a star ( 0.0->1.0   0.0 = all stars bright,  1.0 = maximum variation )
+				float radius	)					//	fixed radius for the stars
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec2 Pf = P - Pi;
+	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = BBS_hash_2D( Pi );
+	//vec4 hash = SGPP_hash_2D( Pi );
+	//vec4 hash = BBS_hash_hq_2D( Pi );
+
+	//	user variables
+	float VALUE = 1.0 - max_dimness * hash.z;
+
+	//	calc the noise and return
+	Pf *= radius.xx;
+	Pf -= ( radius.xx - 1.0.xx );
+	Pf += hash.xy * ( radius.xx - 2.0.xx );
+	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	C1 here suggests that this only be used for texturing and not for displacement
+	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
+}
+
 
