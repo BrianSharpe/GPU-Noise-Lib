@@ -31,17 +31,17 @@
 //
 //	http://briansharpe.wordpress.com/2011/10/01/gpu-texture-free-noise/
 //
-vec4 SGPP_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }		//	its good to keep the domain odd.  ( eg for polka dot noise )
+vec4 SGPP_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }
 vec3 SGPP_coord_prepare(vec3 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }
 vec4 SGPP_permute(vec4 x) { return fract( x * ( ( 34.0 / 289.0 ) * x + ( 1.0 / 289.0 ) ) ) * 289.0; }
 vec4 SGPP_resolve(vec4 x) { return fract( x * ( 7.0 / 288.0 ) ); }
-vec4 SGPP_hash_2D( vec2 gridcell )
+vec4 SGPP_hash_2D( vec2 gridcell )		//	generates a random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
 	return SGPP_resolve( SGPP_permute( SGPP_permute( hash_coord.xzxz ) + hash_coord.yyww ) );
 }
-void SGPP_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
+void SGPP_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
@@ -49,7 +49,7 @@ void SGPP_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
 	hash_1 = SGPP_resolve( SGPP_permute( hash_0 ) );
 	hash_0 = SGPP_resolve( hash_0 );
 }
-void SGPP_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )
+void SGPP_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )		//	generates a random number for each of the 8 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	gridcell = SGPP_coord_prepare( gridcell );
@@ -64,7 +64,7 @@ void SGPP_hash_3D( 	vec3 gridcell,
 					out vec4 lowz_hash_2,
 					out vec4 highz_hash_0,
 					out vec4 highz_hash_1,
-					out vec4 highz_hash_2	)
+					out vec4 highz_hash_2	)	//	generates 3 random numbers for each of the 8 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	gridcell = SGPP_coord_prepare( gridcell );
@@ -77,14 +77,6 @@ void SGPP_hash_3D( 	vec3 gridcell,
 	lowz_hash_2 = SGPP_resolve( SGPP_permute( lowz_hash_2 ) );
 	highz_hash_2 = SGPP_resolve( SGPP_permute( highz_hash_2 ) );
 }
-vec4 SGPP_hash_3D( vec3 gridcell )
-{
-	//    gridcell is assumed to be an integer coordinate
-	gridcell = SGPP_coord_prepare( gridcell );
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, 287.5.xxx ) );
-	vec4 hash = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
-	return SGPP_resolve( SGPP_permute( hash + gridcell.zzzz ) );		//	we only need 4 hash values, so just use the lowZ for the final permutation
-}
 
 
 //
@@ -93,18 +85,18 @@ vec4 SGPP_hash_3D( vec3 gridcell )
 //
 //	http://briansharpe.wordpress.com/2011/10/01/gpu-texture-free-noise/
 //
-vec4 BBS_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }		//	its good to keep the domain odd.  ( eg for polka dot noise )
+vec4 BBS_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }
 vec3 BBS_coord_prepare(vec3 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }
 vec4 BBS_permute(vec4 x) { return fract( x * x * ( 1.0 / 61.0 )) * 61.0; }
 vec4 BBS_permute_and_resolve(vec4 x) { return fract( x * x * ( 1.0 / 61.0 ) ); }
-vec4 BBS_hash_2D( vec2 gridcell )
+vec4 BBS_hash_2D( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
 	vec4 p = BBS_permute( hash_coord.xzxz /* * 7.0 */ ); // * 7.0 will increase variance close to origin
 	return BBS_permute_and_resolve( p + hash_coord.yyww );
 }
-vec4 BBS_hash_hq_2D( vec2 gridcell )
+vec4 BBS_hash_hq_2D( vec2 gridcell )	//	generates a hq random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
@@ -112,13 +104,14 @@ vec4 BBS_hash_hq_2D( vec2 gridcell )
 	p = BBS_permute( p + hash_coord.yyww );
 	return BBS_permute_and_resolve( p + hash_coord.xzxz );
 }
-void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )
+void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )		//	generates a random number for each of the 8 cell corners
 {
 	//	gridcell is assumed to be an integer coordinate
 
 	//	was having precision issues here with 61.0.  60.0 fixes it.  need to test on other cards.
-	gridcell = gridcell - floor(gridcell * ( 1.0 / 60.0 )) * 60.0;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, 58.5.xxx ) );
+	const float DOMAIN = 60.0;
+	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
+	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
 
 	vec4 p = BBS_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy /* * 7.0 */ );  // * 7.0 will increase variance close to origin
 	p = BBS_permute( p + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
@@ -133,36 +126,104 @@ void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )
 //	http://briansharpe.wordpress.com/2011/11/15/a-fast-and-simple-32bit-floating-point-hash-function/
 //
 //	The hash formula takes the form....
-//	hash = mod( coord.x * coord.x * coord.y * coord.y, SOMEPRIME ) / SOMEPRIME
+//	hash = mod( coord.x * coord.x * coord.y * coord.y, SOMELARGEFLOAT ) / SOMELARGEFLOAT
 //	We truncate and offset the domain to the most interesting part of the noise.
+//	SOMELARGEFLOAT should be in the range of 400.0->1000.0 and needs to be hand picked.  Only some give good results.
+//	3D Noise is achieved by offsetting the SOMELARGEFLOAT value by the Z coordinate
 //
-vec4 FAST32_hash_2D( vec2 gridcell )
+vec4 FAST32_hash_2D_Corners( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
 {
 	//	gridcell is assumed to be an integer coordinate
-	const vec2 OFFSET = vec2( 25.0, 161.0 );
-	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
-	const float SOMEPRIME = 643.0;
+	const vec2 OFFSET = vec2( 26.0, 161.0 );
+	const float DOMAIN = 71.0;
+	const float SOMELARGEFLOAT = 951.135664;
 	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;	//	truncate the domain
 	P += OFFSET.xyxy;								//	offset to interesting part of the noise
 	P *= P;											//	calculate and return the hash
-	return fract( P.xzxz * P.yyww * ( 1.0 / SOMEPRIME ).xxxx );
+	return fract( P.xzxz * P.yyww * ( 1.0 / SOMELARGEFLOAT.x ).xxxx );
 }
-void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
+void FAST32_hash_2D_Corners( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
-	const vec2 OFFSET = vec2( 25.0, 161.0 );
-	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
-	const float SOMEPRIME_0 = 643.0;
-	const float SOMEPRIME_1 = 538.0;
-	//const float SOMEPRIME_2 = 514.0;		//	this is another good number, if anyone ever needs it....
+	const vec2 OFFSET = vec2( 26.0, 161.0 );
+	const float DOMAIN = 71.0;
+	const vec2 SOMELARGEFLOATS = vec2( 951.135664, 642.949883 );
 	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
 	P += OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	hash_0 = fract( P * ( 1.0 / SOMEPRIME_0 ).xxxx );
-	hash_1 = fract( P * ( 1.0 / SOMEPRIME_1 ).xxxx );
+	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
+	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
+}
+vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random numbers for the single given cell point
+{
+	//	gridcell is assumed to be an integer coordinate
+	const vec2 OFFSET = vec2( 26.0, 161.0 );
+	const float DOMAIN = 71.0;
+	const vec4 SOMELARGEFLOATS = vec4( 951.135664, 642.949883, 803.202459, 986.973274 );
+	vec2 P = gridcell - floor(gridcell * ( 1.0 / DOMAIN.xx )) * DOMAIN.xx;
+	P += OFFSET.xy;
+	P *= P;
+	return fract( (P.x * P.y).xxxx * ( 1.0 / SOMELARGEFLOATS.xyzw ) );
+}
+void FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )	//	generates a random number for each of the 8 cell corners
+{
+	//    gridcell is assumed to be an integer coordinate
+
+	//	TODO: 	these constants need tweaked to find the best possible noise.
+	//			probably requires some kind of brute force computational searching or something....
+	const vec2 OFFSET = vec2( 50.0, 161.0 );
+	const float DOMAIN = 69.0;
+	const float SOMELARGEFLOAT = 635.298681;
+	const float ZINC = 48.500388;
+
+	//	truncate the domain
+	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
+	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+
+	//	calculate the noise
+	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
+	P *= P;
+	P = P.xzxz * P.yyww;
+	highz_hash.xy = vec2( 1.0.xx / ( SOMELARGEFLOAT.xx + vec2( gridcell.z, gridcell_inc1.z ) * ZINC.xx ) );
+	lowz_hash = fract( P * highz_hash.xxxx );
+	highz_hash = fract( P * highz_hash.yyyy );
+}
+void FAST32_hash_3D( 	vec3 gridcell,
+						out vec4 lowz_hash_0,
+						out vec4 lowz_hash_1,
+						out vec4 lowz_hash_2,
+						out vec4 highz_hash_0,
+						out vec4 highz_hash_1,
+						out vec4 highz_hash_2	)		//	generates 3 random numbers for each of the 8 cell corners
+{
+	//    gridcell is assumed to be an integer coordinate
+
+	//	TODO: 	these constants need tweaked to find the best possible noise.
+	//			probably requires some kind of brute force computational searching or something....
+	const vec2 OFFSET = vec2( 50.0, 161.0 );
+	const float DOMAIN = 69.0;
+	const vec3 SOMELARGEFLOATS = vec3( 635.298681, 682.357502, 668.926525 );
+	const vec3 ZINC = vec3( 48.500388, 65.294118, 63.934599 );
+
+	//	truncate the domain
+	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
+	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+
+	//	calculate the noise
+	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
+	P *= P;
+	P = P.xzxz * P.yyww;
+	lowz_hash_2.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xxyy + vec2( gridcell.z, gridcell_inc1.z ).xyxy * ZINC.xxyy ) );
+	highz_hash_2.xy = vec2( 1.0.xx / ( SOMELARGEFLOATS.zz + vec2( gridcell.z, gridcell_inc1.z ).xy * ZINC.zz ) );
+	lowz_hash_0 = fract( P * lowz_hash_2.xxxx );
+	highz_hash_0 = fract( P * lowz_hash_2.yyyy );
+	lowz_hash_1 = fract( P * lowz_hash_2.zzzz );
+	highz_hash_1 = fract( P * lowz_hash_2.wwww );
+	lowz_hash_2 = fract( P * highz_hash_2.xxxx );
+	highz_hash_2 = fract( P * highz_hash_2.yyyy );
 }
 
 
@@ -251,7 +312,7 @@ float Lattice2D( vec2 P )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D( Pi );
+	vec4 hash = FAST32_hash_2D_Corners( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -275,8 +336,9 @@ float Lattice3D( vec3 P )
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_lowz, hash_highz;
+	FAST32_hash_3D( Pi, hash_lowz, hash_highz );
 	//BBS_hash_3D( Pi, hash_lowz, hash_highz );
-	SGPP_hash_3D( Pi, hash_lowz, hash_highz );
+	//SGPP_hash_3D( Pi, hash_lowz, hash_highz );
 
 	//	blend the results and return
 	vec3 blend = Interpolation_C2( Pf );
@@ -296,28 +358,45 @@ float Perlin2D( vec2 P )
 	vec2 Pi = floor(P);
 	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
 
+#if 1
+	//
+	//	classic noise looks much better than improved noise in 2D, and with an efficent hash function runs at about the same speed.
+	//	requires 2 random numbers per point.
+	//
+
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D( Pi );
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D_Corners( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	calculate the gradient results
+	vec4 grad_x = hash_x - 0.5.xxxx;
+	vec4 grad_y = hash_y - 0.5.xxxx;
+	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
+
+#else
+	//
+	//	2D improved perlin noise.
+	//	requires 2 random number per point.
+	//	does not look as good as classic in 2D due to only 4x4 different possible cell types.
+	//
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash = FAST32_hash_2D_Corners( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
 
+	//
 	//	evaulate the gradients
-#if 0
-	//
-	//	choose between the 4 axis aligned gradients.
-	//	[-1.0,0.0] [1.0,0.0] [0.0,-1.0] [0.0,1.0]
-	//
-	vec4 grad_results = mix( Pf_Pfmin1.xzxz, Pf_Pfmin1.yyww, lessThan( hash, 0.5.xxxx ) );
-	grad_results = mix( grad_results, -grad_results, lessThan( abs( hash - 0.5.xxxx ), 0.25.xxxx ) );
-#else
-	//
-	//	choose between the 4 diagonal gradients.  ( slightly slower but shows less grid artifacts )
+	//	choose between the 4 diagonal gradients.  ( slightly slower than choosing the axis gradients, but shows less grid artifacts )
 	//	[1.0,1.0] [-1.0,1.0] [1.0,-1.0] [-1.0,-1.0]
 	//
 	hash -= 0.5.xxxx;
 	vec4 grad_results = Pf_Pfmin1.xzxz * sign( hash ) + Pf_Pfmin1.yyww * sign( abs( hash ) - 0.25.xxxx );
+
 #endif
 
 	//	blend the results and return
@@ -326,9 +405,8 @@ float Perlin2D( vec2 P )
 	return mix( res0.x, res0.y, blend.x );
 }
 
-
 //
-//	Perlin Noise 2D
+//	Perlin Noise 3D
 //	Return value range of -1.0->1.0
 //
 float Perlin3D( vec3 P )
@@ -338,15 +416,47 @@ float Perlin3D( vec3 P )
 	vec3 Pf = P - Pi;
 	vec3 Pf_min1 = Pf - 1.0;
 
+#if 1
+	//
+	//	classic noise.
+	//	requires 3 random values per point.  with an efficent hash function will run faster than improved noise
+	//
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hashx0, hashy0, hashz0, hashx1, hashy1, hashz1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
+	//SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
+
+	//	calculate the gradients
+	vec4 grad_x0 = hashx0 - 0.5.xxxx;
+	vec4 grad_y0 = hashy0 - 0.5.xxxx;
+	vec4 grad_z0 = hashz0 - 0.5.xxxx;
+	vec4 grad_x1 = hashx1 - 0.5.xxxx;
+	vec4 grad_y1 = hashy1 - 0.5.xxxx;
+	vec4 grad_z1 = hashz1 - 0.5.xxxx;
+	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
+	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
+
+	//	blend the gradients and return
+	vec3 blend = Interpolation_C2( Pf );
+	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
+	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
+	return mix( res1.x, res1.y, blend.x );
+#else
+	//
+	//	improved noise.
+	//	requires 1 random value per point.
+	//
+
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_lowz, hash_highz;
+	FAST32_hash_3D( Pi, hash_lowz, hash_highz );
 	//BBS_hash_3D( Pi, hash_lowz, hash_highz );
-	SGPP_hash_3D( Pi, hash_lowz, hash_highz );
+	//SGPP_hash_3D( Pi, hash_lowz, hash_highz );
 
-	//	evaulate gradients
 #if 0
-
 	//
 	//	this will implement Ken Perlins "improved" classic noise using the 12 mid-edge gradient points.
 	//	[1,1,0] [-1,1,0] [1,-1,0] [-1,-1,0]
@@ -370,12 +480,10 @@ float Perlin3D( vec3 P )
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
 	return mix( res1.x, res1.y, blend.x );
-
 #else
-
 	//
-	//	lets speed things up a little by using the 8 corner gradients instead.
-	//	Ken mentions using diagonals like this can cause "clumping", but we'll live with that.  This will also give us a range of > +-1.0
+	//	"improved" noise using 8 corner gradients.  Faster than the 12 mid-edge point method.
+	//	Ken mentions using diagonals like this can cause "clumping", but we'll live with that.  NOTE: this will also give us a range of > +-1.0
 	//	[1,1,1]  [-1,1,1]  [1,-1,1]  [-1,-1,1]
 	//	[1,1,-1] [-1,1,-1] [1,-1,-1] [-1,-1,-1]
 	//
@@ -398,10 +506,11 @@ float Perlin3D( vec3 P )
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
 	return mix( res1.x, res1.y, blend.x ) * (1.0 / 1.2);	//	mult by (1.0 / 1.2) to scale back to an approximate -1.0->1.0 range  ( TODO: need to find out the extact range.  Initial thoughts suggest -1.5->1.5, but not getting that in practice... )
+#endif
 
 #endif
-}
 
+}
 
 //	convert a 0.0->1.0 sample to a -1.0->1.0 sample weighted towards the extremes
 vec4 Cellular_weight_samples( vec4 samples )
@@ -426,28 +535,28 @@ float Cellular2D(vec2 P)
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 ox, oy;
-	FAST32_hash_2D( Pi, ox, oy );
-	//SGPP_hash_2D( Pi, ox, oy );
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D_Corners( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	generate the 4 random points
 #if 1
 	//	restrict the random point offset to eliminate artifacts
 	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
 	const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=( (0.5+x)^2 + x^2 )
-	ox = Cellular_weight_samples( ox ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
-	oy = Cellular_weight_samples( oy ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
 #else
 	//	non-weighted jitter window.  jitter window of 0.4 will give results similar to Stefans original implementation
 	//	nicer looking, faster, but has minor artifacts.  ( discontinuities in signal )
 	const float JITTER_WINDOW = 0.4;
-	ox = ox * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
-	oy = oy * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_x = hash_x * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_y = hash_y * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
 #endif
 
 	//	return the closest squared distance
-	vec4 dx = Pf.xxxx - ox;
-	vec4 dy = Pf.yyyy - oy;
+	vec4 dx = Pf.xxxx - hash_x;
+	vec4 dy = Pf.yyyy - hash_y;
 	vec4 d = dx * dx + dy * dy;
 	d.xy = min(d.xy, d.zw);
 	return min(d.x, d.y);
@@ -469,39 +578,40 @@ float Cellular3D(vec3 P)
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 ox1, oy1, oz1, ox2, oy2, oz2;
-	SGPP_hash_3D( Pi, ox1, oy1, oz1, ox2, oy2, oz2 );
+	vec4 hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1;
+	FAST32_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
+	//SGPP_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
 
 	//	generate the 8 random points
 #if 1
 	//	restrict the random point offset to eliminate artifacts
 	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
 	const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=( 2 * (( 0.5 + x )^2) + x * x )
-	ox1 = Cellular_weight_samples( ox1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
-	oy1 = Cellular_weight_samples( oy1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
-	ox2 = Cellular_weight_samples( ox2 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
-	oy2 = Cellular_weight_samples( oy2 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
-	oz1 = Cellular_weight_samples( oz1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
-	oz2 = Cellular_weight_samples( oz2 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
+	hash_x0 = Cellular_weight_samples( hash_x0 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y0 = Cellular_weight_samples( hash_y0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	hash_x1 = Cellular_weight_samples( hash_x1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y1 = Cellular_weight_samples( hash_y1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	hash_z0 = Cellular_weight_samples( hash_z0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
+	hash_z1 = Cellular_weight_samples( hash_z1 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
 #else
 	//	non-weighted jitter window.  jitter window of 0.4 will give results similar to Stefans original implementation
 	//	nicer looking, faster, but has minor artifacts.  ( discontinuities in signal )
 	const float JITTER_WINDOW = 0.4;
-	ox1 = ox1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
-	oy1 = oy1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
-	ox2 = ox2 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
-	oy2 = oy2 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
-	oz1 = oz1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW);
-	oz2 = oz2 * JITTER_WINDOW * 2.0 + vec4(1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_x0 = hash_x0 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_y0 = hash_y0 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_x1 = hash_x1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, 1.0-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_y1 = hash_y1 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
+	hash_z0 = hash_z0 * JITTER_WINDOW * 2.0 + vec4(-JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW, -JITTER_WINDOW);
+	hash_z1 = hash_z1 * JITTER_WINDOW * 2.0 + vec4(1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW, 1.0-JITTER_WINDOW);
 #endif
 
 	//	return the closest squared distance
-	vec4 dx1 = Pf.xxxx - ox1;
-	vec4 dy1 = Pf.yyyy - oy1;
-	vec4 dz1 = Pf.zzzz - oz1;
-	vec4 dx2 = Pf.xxxx - ox2;
-	vec4 dy2 = Pf.yyyy - oy2;
-	vec4 dz2 = Pf.zzzz - oz2;
+	vec4 dx1 = Pf.xxxx - hash_x0;
+	vec4 dy1 = Pf.yyyy - hash_y0;
+	vec4 dz1 = Pf.zzzz - hash_z0;
+	vec4 dx2 = Pf.xxxx - hash_x1;
+	vec4 dy2 = Pf.yyyy - hash_y1;
+	vec4 dz2 = Pf.zzzz - hash_z1;
 	vec4 d1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
 	vec4 d2 = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
 	d1 = min(d1, d2);
@@ -515,22 +625,23 @@ float Cellular3D(vec3 P)
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
+//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
 //
 float PolkaDot2D( 	vec2 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
+					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
 					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range of 0.0->1.0
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
 	vec2 Pf = P - Pi;
-	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D( Pi );
-	//vec4 hash = BBS_hash_2D( Pi );
-	//vec4 hash = SGPP_hash_2D( Pi );
-	//vec4 hash = BBS_hash_hq_2D( Pi );
+	vec4 hash = FAST32_hash_2D_Cell( Pi );
+	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
+	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
+	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
 
 	//	user variables
 	float RADIUS = hash.z * RadRange.y + RadRange.x;		//	NOTE: we can parallelize this.  ( but seems like the compiler does it automatically anyway? )
@@ -550,21 +661,22 @@ float PolkaDot2D( 	vec2 P,
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
+//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
 //
 float PolkaDot3D( 	vec3 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
+					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
 					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range of 0.0->1.0
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
 	vec3 Pf = P - Pi;
-	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 8 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_lowz, hash_highz;
-	//BBS_hash_3D( Pi, hash_lowz, hash_highz );
-	SGPP_hash_3D( Pi, hash_lowz, hash_highz );
+	FAST32_hash_3D( Pi * 2.0, hash_lowz, hash_highz );	//	Need to multiply by 2.0 here because we want to use all 8 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+	//BBS_hash_3D( Pi * 2.0, hash_lowz, hash_highz );
+	//SGPP_hash_3D( Pi * 2.0, hash_lowz, hash_highz );
 
 	//	user variables
 	float RADIUS = hash_lowz.w * RadRange.y + RadRange.x;		//	NOTE: we can parallelize this.  ( but seems like the compiler does it automatically anyway? )
@@ -581,34 +693,33 @@ float PolkaDot3D( 	vec3 P,
 //
 //	Stars2D
 //
-//	procedural texture for creating a starry background  ( NOTE: should be combined with a nebula/space-like texture )
+//	procedural texture for creating a starry background.  ( looks good when combined with a nebula/space-like colour texture )
+//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
 //
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
 				float max_dimness,					//	the maximal dimness of a star ( 0.0->1.0   0.0 = all stars bright,  1.0 = maximum variation )
-				float radius	)					//	fixed radius for the stars
+				float two_over_radius )				//	fixed radius for the stars.  radius range is 0.0->1.0.  shader requires 2.0/radius as input.
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
 	vec2 Pf = P - Pi;
-	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D( Pi );
-	//vec4 hash = BBS_hash_2D( Pi );
-	//vec4 hash = SGPP_hash_2D( Pi );
-	//vec4 hash = BBS_hash_hq_2D( Pi );
+	vec4 hash = FAST32_hash_2D_Cell( Pi );
+	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
+	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
+	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
 
 	//	user variables
 	float VALUE = 1.0 - max_dimness * hash.z;
 
 	//	calc the noise and return
-	Pf *= radius.xx;
-	Pf -= ( radius.xx - 1.0.xx );
-	Pf += hash.xy * ( radius.xx - 2.0.xx );
-	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	C1 here suggests that this only be used for texturing and not for displacement
+	Pf *= two_over_radius.xx;
+	Pf -= ( two_over_radius.xx - 1.0.xx );
+	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
+	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	alternative using step instead of the conditional.
 }
-
-
