@@ -31,7 +31,7 @@
 //
 //	http://briansharpe.wordpress.com/2011/10/01/gpu-texture-free-noise/
 //
-vec4 SGPP_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }
+vec4 SGPP_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }		//	its good to keep the domain odd.  ( eg for polka dot noise )
 vec3 SGPP_coord_prepare(vec3 x) { return x - floor(x * ( 1.0 / 289.0 )) * 289.0; }
 vec4 SGPP_permute(vec4 x) { return fract( x * ( ( 34.0 / 289.0 ) * x + ( 1.0 / 289.0 ) ) ) * 289.0; }
 vec4 SGPP_resolve(vec4 x) { return fract( x * ( 7.0 / 288.0 ) ); }
@@ -93,7 +93,7 @@ vec4 SGPP_hash_3D( vec3 gridcell )
 //
 //	http://briansharpe.wordpress.com/2011/10/01/gpu-texture-free-noise/
 //
-vec4 BBS_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }
+vec4 BBS_coord_prepare(vec4 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }		//	its good to keep the domain odd.  ( eg for polka dot noise )
 vec3 BBS_coord_prepare(vec3 x) { return x - floor(x * ( 1.0 / 61.0 )) * 61.0; }
 vec4 BBS_permute(vec4 x) { return fract( x * x * ( 1.0 / 61.0 )) * 61.0; }
 vec4 BBS_permute_and_resolve(vec4 x) { return fract( x * x * ( 1.0 / 61.0 ) ); }
@@ -136,11 +136,11 @@ void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )
 //	hash = mod( coord.x * coord.x * coord.y * coord.y, SOMEPRIME ) / SOMEPRIME
 //	We truncate and offset the domain to the most interesting part of the noise.
 //
-vec4 FAST32_hash_2D_Corners( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
+vec4 FAST32_hash_2D( vec2 gridcell )
 {
 	//	gridcell is assumed to be an integer coordinate
 	const vec2 OFFSET = vec2( 25.0, 161.0 );
-	const float DOMAIN = 71.0;
+	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
 	const float SOMEPRIME = 643.0;
 	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;	//	truncate the domain
@@ -148,30 +148,21 @@ vec4 FAST32_hash_2D_Corners( vec2 gridcell )	//	generates a random number for ea
 	P *= P;											//	calculate and return the hash
 	return fract( P.xzxz * P.yyww * ( 1.0 / SOMEPRIME ).xxxx );
 }
-void FAST32_hash_2D_Corners( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
+void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
 {
 	//    gridcell is assumed to be an integer coordinate
 	const vec2 OFFSET = vec2( 25.0, 161.0 );
-	const float DOMAIN = 71.0;
-	const vec2 PRIMES = vec2( 643.0, 803.0 );
+	const float DOMAIN = 71.0;			//	its good to keep the domain odd.  ( eg for polka dot noise )
+	const float SOMEPRIME_0 = 643.0;
+	const float SOMEPRIME_1 = 538.0;
+	//const float SOMEPRIME_2 = 514.0;		//	this is another good number, if anyone ever needs it....
 	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
 	P += OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	hash_0 = fract( P * ( 1.0 / PRIMES.x ).xxxx );
-	hash_1 = fract( P * ( 1.0 / PRIMES.y ).xxxx );
-}
-vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random numbers for the single given cell point
-{
-	//	gridcell is assumed to be an integer coordinate
-	const vec2 OFFSET = vec2( 25.0, 161.0 );
-	const float DOMAIN = 71.0;
-	const vec4 PRIMES = vec4( 643.0, 951.0, 803.0, 987.0 );
-	vec2 P = gridcell - floor(gridcell * ( 1.0 / DOMAIN.xx )) * DOMAIN.xx;	//	truncate the domain
-	P += OFFSET.xy;											//	offset to interesting part of the noise
-	P *= P;													//	calculate and return the hash
-	return fract( (P.x * P.y).xxxx * ( 1.0 / PRIMES ) );
+	hash_0 = fract( P * ( 1.0 / SOMEPRIME_0 ).xxxx );
+	hash_1 = fract( P * ( 1.0 / SOMEPRIME_1 ).xxxx );
 }
 
 
@@ -260,7 +251,7 @@ float Lattice2D( vec2 P )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Corners( Pi );
+	vec4 hash = FAST32_hash_2D( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -307,7 +298,7 @@ float Perlin2D( vec2 P )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Corners( Pi );
+	vec4 hash = FAST32_hash_2D( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -436,7 +427,7 @@ float Cellular2D(vec2 P)
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 ox, oy;
-	FAST32_hash_2D_Corners( Pi, ox, oy );
+	FAST32_hash_2D( Pi, ox, oy );
 	//SGPP_hash_2D( Pi, ox, oy );
 
 	//	generate the 4 random points
@@ -526,20 +517,20 @@ float Cellular3D(vec3 P)
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
 //
 float PolkaDot2D( 	vec2 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
+					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
 					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range of 0.0->1.0
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
 	vec2 Pf = P - Pi;
+	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Cell( Pi );
-	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
-	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
-	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
-	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
+	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = BBS_hash_2D( Pi );
+	//vec4 hash = SGPP_hash_2D( Pi );
+	//vec4 hash = BBS_hash_hq_2D( Pi );
 
 	//	user variables
 	float RADIUS = hash.z * RadRange.y + RadRange.x;		//	NOTE: we can parallelize this.  ( but seems like the compiler does it automatically anyway? )
@@ -561,7 +552,7 @@ float PolkaDot2D( 	vec2 P,
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
 //
 float PolkaDot3D( 	vec3 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
+					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
 					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range of 0.0->1.0
 {
 	//	establish our grid cell and unit position
@@ -590,34 +581,34 @@ float PolkaDot3D( 	vec3 P,
 //
 //	Stars2D
 //
-//	procedural texture for creating a starry background.  ( NOTE: looks good when combined with a nebula/space-like colour texture )
+//	procedural texture for creating a starry background  ( NOTE: should be combined with a nebula/space-like texture )
 //
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
 				float max_dimness,					//	the maximal dimness of a star ( 0.0->1.0   0.0 = all stars bright,  1.0 = maximum variation )
-				float two_over_radius )				//	fixed radius for the stars.  radius range is 0.0->1.0.  shader requires 2.0/radius as input.
+				float radius	)					//	fixed radius for the stars
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
 	vec2 Pf = P - Pi;
+	Pi *= 2.0;		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Cell( Pi );
-	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
-	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
-	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
-	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
+	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = BBS_hash_2D( Pi );
+	//vec4 hash = SGPP_hash_2D( Pi );
+	//vec4 hash = BBS_hash_hq_2D( Pi );
 
 	//	user variables
 	float VALUE = 1.0 - max_dimness * hash.z;
 
 	//	calc the noise and return
-	Pf *= two_over_radius.xx;
-	Pf -= ( two_over_radius.xx - 1.0.xx );
-	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
+	Pf *= radius.xx;
+	Pf -= ( radius.xx - 1.0.xx );
+	Pf += hash.xy * ( radius.xx - 2.0.xx );
+	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	C1 here suggests that this only be used for texturing and not for displacement
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
-	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	alternative using step instead of the conditional.
 }
 
 
