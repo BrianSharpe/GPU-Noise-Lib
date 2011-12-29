@@ -637,14 +637,18 @@ float ValuePerlin3D( vec3 P, float blend_val )
 	return mix( res1.x, res1.y, blend.x );
 }
 
+float Cubist_LinearClamp( float low, float high, float val ) { return ( val - low ) / ( high - low );
+}
+
 
 //
 //	Cubist Noise 2D
 //
-//	Generates a noise which resembles a cubist-style painting pattern.  Range 0.0->1.0
+//	Generates a noise which resembles a cubist-style painting pattern.  Final Range 0.0->1.0
 //	NOTE:  contains discontinuities.  best used only for texturing.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
 //
-float Cubist2D( vec2 P )
+float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y = 1.0/(high-low).  suggest value low=-2.0  high=1.0
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -661,22 +665,26 @@ float Cubist2D( vec2 P )
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 
 	//	invert the gradient to convert from perlin to cubist
-	grad_results = ( hash_z - 0.5.xxxx ) * ( 1.0.xxxx / grad_results ) + 0.5.xxxx;
+	grad_results = ( hash_z - 0.5.xxxx ) * ( 1.0.xxxx / grad_results );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
 	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
-	return clamp( mix( res0.x, res0.y, blend.x ), 0.0, 1.0 );		//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+	float final = mix( res0.x, res0.y, blend.x );
+
+	//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+	return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
 }
 
 
 //
 //	Cubist Noise 3D
 //
-//	Generates a noise which resembles a cubist-style painting pattern.  Range 0.0->1.0
+//	Generates a noise which resembles a cubist-style painting pattern.  Final Range 0.0->1.0
 //	NOTE:  contains discontinuities.  best used only for texturing.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
 //
-float Cubist3D( vec3 P )
+float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y = 1.0/(high-low).  suggest value low=-2.0  high=1.0
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
@@ -706,7 +714,10 @@ float Cubist3D( vec3 P )
 	vec3 blend = Interpolation_C2( Pf );
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-	return clamp( mix( res1.x, res1.y, blend.x ), 0.0, 1.0 );		//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+	float final = mix( res1.x, res1.y, blend.x );
+
+	//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+	return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
 }
 
 
@@ -823,7 +834,7 @@ float Cellular3D(vec3 P)
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
 //
 float PolkaDot2D( 	vec2 P,
 					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
@@ -859,7 +870,7 @@ float PolkaDot2D( 	vec2 P,
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
 //
 float PolkaDot3D( 	vec3 P,
 					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
@@ -892,7 +903,7 @@ float PolkaDot3D( 	vec3 P,
 //	Stars2D
 //
 //	procedural texture for creating a starry background.  ( looks good when combined with a nebula/space-like colour texture )
-//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
 //
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
