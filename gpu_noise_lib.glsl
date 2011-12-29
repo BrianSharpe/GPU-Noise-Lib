@@ -157,6 +157,24 @@ void FAST32_hash_2D_Corners( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	/
 	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
 	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
 }
+void FAST32_hash_2D_Corners( 	vec2 gridcell,
+								out vec4 hash_0,
+								out vec4 hash_1,
+								out vec4 hash_2	)	//	generates 3 random numbers for each of the 4 cell corners
+{
+	//    gridcell is assumed to be an integer coordinate
+	const vec2 OFFSET = vec2( 26.0, 161.0 );
+	const float DOMAIN = 71.0;
+	const vec3 SOMELARGEFLOATS = vec3( 951.135664, 642.949883, 803.202459 );
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
+	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
+	P += OFFSET.xyxy;
+	P *= P;
+	P = P.xzxz * P.yyww;
+	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
+	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
+	hash_2 = fract( P * ( 1.0 / SOMELARGEFLOATS.z ).xxxx );
+}
 vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random numbers for the single given cell point
 {
 	//	gridcell is assumed to be an integer coordinate
@@ -216,14 +234,52 @@ void FAST32_hash_3D( 	vec3 gridcell,
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	lowz_hash_2.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xxyy + vec2( gridcell.z, gridcell_inc1.z ).xyxy * ZINC.xxyy ) );
-	highz_hash_2.xy = vec2( 1.0.xx / ( SOMELARGEFLOATS.zz + vec2( gridcell.z, gridcell_inc1.z ).xy * ZINC.zz ) );
+	lowz_hash_2.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzx + vec2( gridcell.z, gridcell_inc1.z ).xxxy * ZINC.xyzx ) );
+	highz_hash_2.xy = vec2( 1.0.xx / ( SOMELARGEFLOATS.yz + gridcell_inc1.zz * ZINC.yz ) );
 	lowz_hash_0 = fract( P * lowz_hash_2.xxxx );
-	highz_hash_0 = fract( P * lowz_hash_2.yyyy );
-	lowz_hash_1 = fract( P * lowz_hash_2.zzzz );
-	highz_hash_1 = fract( P * lowz_hash_2.wwww );
-	lowz_hash_2 = fract( P * highz_hash_2.xxxx );
+	highz_hash_0 = fract( P * lowz_hash_2.wwww );
+	lowz_hash_1 = fract( P * lowz_hash_2.yyyy );
+	highz_hash_1 = fract( P * highz_hash_2.xxxx );
+	lowz_hash_2 = fract( P * lowz_hash_2.zzzz );
 	highz_hash_2 = fract( P * highz_hash_2.yyyy );
+}
+void FAST32_hash_3D( 	vec3 gridcell,
+						out vec4 lowz_hash_0,
+						out vec4 lowz_hash_1,
+						out vec4 lowz_hash_2,
+						out vec4 lowz_hash_3,
+						out vec4 highz_hash_0,
+						out vec4 highz_hash_1,
+						out vec4 highz_hash_2,
+						out vec4 highz_hash_3	)		//	generates 4 random numbers for each of the 8 cell corners
+{
+	//    gridcell is assumed to be an integer coordinate
+
+	//	TODO: 	these constants need tweaked to find the best possible noise.
+	//			probably requires some kind of brute force computational searching or something....
+	const vec2 OFFSET = vec2( 50.0, 161.0 );
+	const float DOMAIN = 69.0;
+	const vec4 SOMELARGEFLOATS = vec4( 635.298681, 682.357502, 668.926525, 588.255119 );
+	const vec4 ZINC = vec4( 48.500388, 65.294118, 63.934599, 63.279683 );
+
+	//	truncate the domain
+	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
+	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+
+	//	calculate the noise
+	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
+	P *= P;
+	P = P.xzxz * P.yyww;
+	lowz_hash_3.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzw + gridcell.zzzz * ZINC.xyzw ) );
+	highz_hash_3.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzw + gridcell_inc1.zzzz * ZINC.xyzw ) );
+	lowz_hash_0 = fract( P * lowz_hash_3.xxxx );
+	highz_hash_0 = fract( P * highz_hash_3.xxxx );
+	lowz_hash_1 = fract( P * lowz_hash_3.yyyy );
+	highz_hash_1 = fract( P * highz_hash_3.yyyy );
+	lowz_hash_2 = fract( P * lowz_hash_3.zzzz );
+	highz_hash_2 = fract( P * highz_hash_3.zzzz );
+	lowz_hash_3 = fract( P * lowz_hash_3.wwww );
+	highz_hash_3 = fract( P * highz_hash_3.wwww );
 }
 
 
@@ -301,10 +357,10 @@ vec4 Falloff_Xsq_C3( vec4 xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq 
 
 
 //
-//	Lattice Noise 2D
+//	Value Noise 2D
 //	Return value range of 0.0->1.0
 //
-float Lattice2D( vec2 P )
+float Value2D( vec2 P )
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -324,10 +380,10 @@ float Lattice2D( vec2 P )
 }
 
 //
-//	Lattice Noise 3D
+//	Value Noise 3D
 //	Return value range of 0.0->1.0
 //
-float Lattice3D( vec3 P )
+float Value3D( vec3 P )
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
@@ -349,7 +405,7 @@ float Lattice3D( vec3 P )
 
 
 //
-//	Perlin Noise 2D
+//	Perlin Noise 2D  ( gradient noise )
 //	Return value range of -1.0->1.0
 //
 float Perlin2D( vec2 P )
@@ -371,8 +427,8 @@ float Perlin2D( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	calculate the gradient results
-	vec4 grad_x = hash_x - 0.5.xxxx;
-	vec4 grad_y = hash_y - 0.5.xxxx;
+	vec4 grad_x = hash_x - 0.49999.xxxx;
+	vec4 grad_y = hash_y - 0.49999.xxxx;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 
 #else
@@ -406,7 +462,7 @@ float Perlin2D( vec2 P )
 }
 
 //
-//	Perlin Noise 3D
+//	Perlin Noise 3D  ( gradient noise )
 //	Return value range of -1.0->1.0
 //
 float Perlin3D( vec3 P )
@@ -429,12 +485,12 @@ float Perlin3D( vec3 P )
 	//SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
 
 	//	calculate the gradients
-	vec4 grad_x0 = hashx0 - 0.5.xxxx;
-	vec4 grad_y0 = hashy0 - 0.5.xxxx;
-	vec4 grad_z0 = hashz0 - 0.5.xxxx;
-	vec4 grad_x1 = hashx1 - 0.5.xxxx;
-	vec4 grad_y1 = hashy1 - 0.5.xxxx;
-	vec4 grad_z1 = hashz1 - 0.5.xxxx;
+	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
+	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
+	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
+	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
+	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
+	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
 	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 
@@ -511,6 +567,148 @@ float Perlin3D( vec3 P )
 #endif
 
 }
+
+//
+//	ValuePerlin Noise 2D	( value gradient noise )
+//	A uniform blend between value and perlin noise
+//	Return value range of -1.0->1.0
+//
+//	NOTE:  A blend_val of 0.7 is suggested given ValueNoise has linear distribution and PerlinNoise has gaussian
+//
+float ValuePerlin2D( vec2 P, float blend_val )
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y, hash_z;
+	FAST32_hash_2D_Corners( Pi, hash_x, hash_y, hash_z );
+
+	//	calculate the gradient results
+	vec4 grad_x = hash_x - 0.49999.xxxx;
+	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
+	grad_results = mix( (hash_z * 2.0.xxxx - 1.0.xxxx), grad_results, blend_val );
+
+	//	blend the results and return
+	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
+	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
+	return mix( res0.x, res0.y, blend.x );
+}
+
+
+//
+//	ValuePerlin Noise 3D	( value gradient noise )
+//	A uniform blend between value and perlin noise
+//	Return value range of -1.0->1.0
+//
+//	NOTE:  A blend_val of 0.7 is suggested given ValueNoise has linear distribution and PerlinNoise has gaussian
+//
+float ValuePerlin3D( vec3 P, float blend_val )
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+	vec3 Pf_min1 = Pf - 1.0;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1 );
+
+	//	calculate the gradients
+	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
+	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
+	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
+	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
+	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
+	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
+	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
+	grad_results_0 = mix( (hashw0 * 2.0.xxxx - 1.0.xxxx), grad_results_0, blend_val );
+	grad_results_1 = mix( (hashw1 * 2.0.xxxx - 1.0.xxxx), grad_results_1, blend_val );
+
+	//	blend the gradients and return
+	vec3 blend = Interpolation_C2( Pf );
+	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
+	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
+	return mix( res1.x, res1.y, blend.x );
+}
+
+
+//
+//	Cubist Noise 2D
+//
+//	Generates a noise which resembles a cubist-style painting pattern.  Range 0.0->1.0
+//	NOTE:  contains discontinuities.  best used only for texturing.
+//
+float Cubist2D( vec2 P )
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y, hash_z;
+	FAST32_hash_2D_Corners( Pi, hash_x, hash_y, hash_z );
+
+	//	calculate the gradient results
+	vec4 grad_x = hash_x - 0.49999.xxxx;
+	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
+
+	//	invert the gradient to convert from perlin to cubist
+	grad_results = ( hash_z - 0.5.xxxx ) * ( 1.0.xxxx / grad_results ) + 0.5.xxxx;
+
+	//	blend the results and return
+	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
+	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
+	return clamp( mix( res0.x, res0.y, blend.x ), 0.0, 1.0 );		//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+}
+
+
+//
+//	Cubist Noise 3D
+//
+//	Generates a noise which resembles a cubist-style painting pattern.  Range 0.0->1.0
+//	NOTE:  contains discontinuities.  best used only for texturing.
+//
+float Cubist3D( vec3 P )
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+	vec3 Pf_min1 = Pf - 1.0;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1 );
+
+	//	calculate the gradients
+	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
+	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
+	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
+	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
+	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
+	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
+	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
+
+	//	invert the gradient to convert from perlin to cubist
+	grad_results_0 = ( hashw0 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_0 ) + 0.5.xxxx;
+	grad_results_1 = ( hashw1 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_1 ) + 0.5.xxxx;
+
+	//	blend the gradients and return
+	vec3 blend = Interpolation_C2( Pf );
+	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
+	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
+	return clamp( mix( res1.x, res1.y, blend.x ), 0.0, 1.0 );		//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
+}
+
 
 //	convert a 0.0->1.0 sample to a -1.0->1.0 sample weighted towards the extremes
 vec4 Cellular_weight_samples( vec4 samples )
@@ -625,7 +823,7 @@ float Cellular3D(vec3 P)
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
 //
 float PolkaDot2D( 	vec2 P,
 					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
@@ -661,7 +859,7 @@ float PolkaDot2D( 	vec2 P,
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
 //	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
 //
 float PolkaDot3D( 	vec3 P,
 					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
@@ -694,7 +892,7 @@ float PolkaDot3D( 	vec3 P,
 //	Stars2D
 //
 //	procedural texture for creating a starry background.  ( looks good when combined with a nebula/space-like colour texture )
-//	NOTE:  Any practical game implementation should hard-code these parameter values for speed.
+//	NOTE:  Any serious game implementation should hard-code these parameter values for speed.
 //
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
@@ -721,5 +919,4 @@ float Stars2D(	vec2 P,
 	Pf -= ( two_over_radius.xx - 1.0.xx );
 	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
-	//return Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE * step( hash.w, probability_threshold );		//	alternative using step instead of the conditional.
 }
