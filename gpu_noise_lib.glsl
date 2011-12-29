@@ -359,6 +359,7 @@ vec4 Falloff_Xsq_C3( vec4 xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq 
 //
 //	Value Noise 2D
 //	Return value range of 0.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 float Value2D( vec2 P )
 {
@@ -382,6 +383,7 @@ float Value2D( vec2 P )
 //
 //	Value Noise 3D
 //	Return value range of 0.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 float Value3D( vec3 P )
 {
@@ -407,6 +409,7 @@ float Value3D( vec3 P )
 //
 //	Perlin Noise 2D  ( gradient noise )
 //	Return value range of -1.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 float Perlin2D( vec2 P )
 {
@@ -464,6 +467,7 @@ float Perlin2D( vec2 P )
 //
 //	Perlin Noise 3D  ( gradient noise )
 //	Return value range of -1.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 float Perlin3D( vec3 P )
 {
@@ -572,6 +576,7 @@ float Perlin3D( vec3 P )
 //	ValuePerlin Noise 2D	( value gradient noise )
 //	A uniform blend between value and perlin noise
 //	Return value range of -1.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 //	NOTE:  A blend_val of 0.7 is suggested given ValueNoise has linear distribution and PerlinNoise has gaussian
 //
@@ -603,6 +608,7 @@ float ValuePerlin2D( vec2 P, float blend_val )
 //	ValuePerlin Noise 3D	( value gradient noise )
 //	A uniform blend between value and perlin noise
 //	Return value range of -1.0->1.0
+//	http://briansharpe.wordpress.com/2011/11/26/github-code-repository/
 //
 //	NOTE:  A blend_val of 0.7 is suggested given ValueNoise has linear distribution and PerlinNoise has gaussian
 //
@@ -637,12 +643,10 @@ float ValuePerlin3D( vec3 P, float blend_val )
 	return mix( res1.x, res1.y, blend.x );
 }
 
-float Cubist_LinearClamp( float low, float high, float val ) { return ( val - low ) / ( high - low );
-}
-
 
 //
 //	Cubist Noise 2D
+//	http://briansharpe.wordpress.com/2011/12/24/polkadot-and-star-noises/
 //
 //	Generates a noise which resembles a cubist-style painting pattern.  Final Range 0.0->1.0
 //	NOTE:  contains discontinuities.  best used only for texturing.
@@ -679,6 +683,7 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
 //
 //	Cubist Noise 3D
+//	http://briansharpe.wordpress.com/2011/12/24/polkadot-and-star-noises/
 //
 //	Generates a noise which resembles a cubist-style painting pattern.  Final Range 0.0->1.0
 //	NOTE:  contains discontinuities.  best used only for texturing.
@@ -732,6 +737,7 @@ vec4 Cellular_weight_samples( vec4 samples )
 //
 //	Cellular Noise 2D
 //	Based off Stefan Gustavson's work at http://www.itn.liu.se/~stegu/GLSL-cellular
+//	http://briansharpe.wordpress.com/2011/12/01/optimized-artifact-free-gpu-cellular-noise/
 //
 //	Speed up by using 2x2 search window instead of 3x3
 //	produces range of 0.0->~1.0 ( max theoritical value of sqrt( 0.75^2 * 2.0 ) ~= 1.0607 for dist and ( 0.75^2 * 2.0 ) = 1.125 for dist sq, but should rarely reach that )
@@ -775,6 +781,7 @@ float Cellular2D(vec2 P)
 //
 //	Cellular Noise 3D
 //	Based off Stefan Gustavson's work at http://www.itn.liu.se/~stegu/GLSL-cellular
+//	http://briansharpe.wordpress.com/2011/12/01/optimized-artifact-free-gpu-cellular-noise/
 //
 //	Speed up by using 2x2x2 search window instead of 3x3x3
 //	produces range of 0.0->~1.0  ( max theoritical value of sqrt( 0.666666^2 * 3.0 ) ~= 1.155 for dist and ( 0.666666^2 * 3.0 ) ~= 1.33333 for dist sq, but should rarely reach that )
@@ -830,6 +837,7 @@ float Cellular3D(vec3 P)
 
 //
 //	PolkaDot Noise 2D
+//	http://briansharpe.wordpress.com/2011/12/24/polkadot-and-star-noises/
 //
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
@@ -866,6 +874,7 @@ float PolkaDot2D( 	vec2 P,
 
 //
 //	PolkaDot Noise 3D
+//	http://briansharpe.wordpress.com/2011/12/24/polkadot-and-star-noises/
 //
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
@@ -901,6 +910,7 @@ float PolkaDot3D( 	vec3 P,
 
 //
 //	Stars2D
+//	http://briansharpe.wordpress.com/2011/12/24/polkadot-and-star-noises/
 //
 //	procedural texture for creating a starry background.  ( looks good when combined with a nebula/space-like colour texture )
 //	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
