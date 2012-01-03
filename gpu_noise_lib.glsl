@@ -22,6 +22,7 @@
 //	2) 16bit and 24bit implementations of hashes and noises
 //	3) Lift various noise implementations out to individual self-contained files
 //	4) Implement texture-based versions
+//	5) 4D noises
 //
 
 //
@@ -131,7 +132,7 @@ void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )		//	g
 //	SOMELARGEFLOAT should be in the range of 400.0->1000.0 and needs to be hand picked.  Only some give good results.
 //	3D Noise is achieved by offsetting the SOMELARGEFLOAT value by the Z coordinate
 //
-vec4 FAST32_hash_2D_Corners( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
+vec4 FAST32_hash_2D( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
 {
 	//	gridcell is assumed to be an integer coordinate
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
@@ -143,7 +144,7 @@ vec4 FAST32_hash_2D_Corners( vec2 gridcell )	//	generates a random number for ea
 	P *= P;											//	calculate and return the hash
 	return fract( P.xzxz * P.yyww * ( 1.0 / SOMELARGEFLOAT.x ).xxxx );
 }
-void FAST32_hash_2D_Corners( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
+void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
@@ -157,10 +158,10 @@ void FAST32_hash_2D_Corners( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	/
 	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
 	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
 }
-void FAST32_hash_2D_Corners( 	vec2 gridcell,
-								out vec4 hash_0,
-								out vec4 hash_1,
-								out vec4 hash_2	)	//	generates 3 random numbers for each of the 4 cell corners
+void FAST32_hash_2D( 	vec2 gridcell,
+						out vec4 hash_0,
+						out vec4 hash_1,
+						out vec4 hash_2	)	//	generates 3 random numbers for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
@@ -369,7 +370,7 @@ float Value2D( vec2 P )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Corners( Pi );
+	vec4 hash = FAST32_hash_2D( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -426,7 +427,7 @@ float Perlin2D( vec2 P )
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_x, hash_y;
-	FAST32_hash_2D_Corners( Pi, hash_x, hash_y );
+	FAST32_hash_2D( Pi, hash_x, hash_y );
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	calculate the gradient results
@@ -443,7 +444,7 @@ float Perlin2D( vec2 P )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D_Corners( Pi );
+	vec4 hash = FAST32_hash_2D( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -565,7 +566,7 @@ float Perlin3D( vec3 P )
 	vec3 blend = Interpolation_C2( Pf );
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-	return mix( res1.x, res1.y, blend.x ) * (1.0 / 1.2);	//	mult by (1.0 / 1.2) to scale back to an approximate -1.0->1.0 range  ( TODO: need to find out the extact range.  Initial thoughts suggest -1.5->1.5, but not getting that in practice... )
+	return mix( res1.x, res1.y, blend.x ) * (1.0 / 1.5);	//	mult by (1.0 / 1.5) to scale back to a -1.0->1.0 range
 #endif
 
 #endif
@@ -589,7 +590,7 @@ float ValuePerlin2D( vec2 P, float blend_val )
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_x, hash_y, hash_z;
-	FAST32_hash_2D_Corners( Pi, hash_x, hash_y, hash_z );
+	FAST32_hash_2D( Pi, hash_x, hash_y, hash_z );
 
 	//	calculate the gradient results
 	vec4 grad_x = hash_x - 0.49999.xxxx;
@@ -661,7 +662,7 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_x, hash_y, hash_z;
-	FAST32_hash_2D_Corners( Pi, hash_x, hash_y, hash_z );
+	FAST32_hash_2D( Pi, hash_x, hash_y, hash_z );
 
 	//	calculate the gradient results
 	vec4 grad_x = hash_x - 0.49999.xxxx;
@@ -678,7 +679,7 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
 	//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
 	return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
-	//return smoothstep( 0.0, 1.0, ( final - range_clamp.x ) * range_clamp.y );		//	hmmm... smoothstep doesn't look as good, but does create a smoother signal....
+	//return smoothstep( 0.0, 1.0, ( final - range_clamp.x ) * range_clamp.y );		//	experiments.  smoothstep doesn't look as good, but does remove some discontinuities....
 }
 
 
@@ -724,7 +725,7 @@ float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
 	//	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
 	return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
-	//return smoothstep( 0.0, 1.0, ( final - range_clamp.x ) * range_clamp.y );		//	hmmm... smoothstep doesn't look as good, but does create a smoother signal....
+	//return smoothstep( 0.0, 1.0, ( final - range_clamp.x ) * range_clamp.y );		//	experiments.  smoothstep doesn't look as good, but does remove some discontinuities....
 }
 
 
@@ -753,7 +754,7 @@ float Cellular2D(vec2 P)
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_x, hash_y;
-	FAST32_hash_2D_Corners( Pi, hash_x, hash_y );
+	FAST32_hash_2D( Pi, hash_x, hash_y );
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	generate the 4 random points
@@ -857,7 +858,7 @@ float PolkaDot2D( 	vec2 P,
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash = FAST32_hash_2D_Cell( Pi );
-	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+	//vec4 hash = FAST32_hash_2D( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
 	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
 	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
@@ -929,7 +930,7 @@ float Stars2D(	vec2 P,
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash = FAST32_hash_2D_Cell( Pi );
-	//vec4 hash = FAST32_hash_2D_Corners( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
+	//vec4 hash = FAST32_hash_2D( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
 	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
 	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
 	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
@@ -942,4 +943,136 @@ float Stars2D(	vec2 P,
 	Pf -= ( two_over_radius.xx - 1.0.xx );
 	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
+}
+
+
+//
+//	SimplexValue2D
+//	value noise over a simplex (triangular) grid
+//	Return value range of 0.0->1.0
+//
+//	simplex math based off Stefan Gustavson's and Ian McEwan's work at...
+//	http://github.com/ashima/webgl-noise
+//
+float SimplexValue2D( vec2 P )
+{
+	//	simplex math constants
+	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
+	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
+	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR );		//	vertex info for simplex triangle
+
+	//	establish our grid cell.
+	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
+	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = BBS_hash_2D( Pi );
+	//vec4 hash = SGPP_hash_2D( Pi );
+	//vec4 hash = BBS_hash_hq_2D( Pi );
+
+	//	establish vectors to the 3 corners of our simplex triangle
+	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
+	vec3 v1pos_v1hash = (v0.x < v0.y) ? vec3(SIMPLEX_POINTS.xy, hash.y) : vec3(SIMPLEX_POINTS.yx, hash.z);
+	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
+	vec3 v012_vals = vec3( hash.x, v1pos_v1hash.z, hash.w );
+
+	//	evaluate the suflet, sum and return
+	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
+	m = max(0.5 - m, 0.0);
+	m = m*m;
+	m = m*m;
+	return dot(m, v012_vals) * 16.0;  //	16 = 1.0 / ( 0.5^4 )
+}
+
+//
+//	SimplexPerlin2D  ( simplex gradient noise )
+//	Perlin noise over a simplex (triangular) grid
+//	Return value range of -1.0->1.0
+//
+//	Implementation originally based off Stefan Gustavson's and Ian McEwan's work at...
+//	http://github.com/ashima/webgl-noise
+//	with improvements to speed and accuracy, also for domain and range scaling to closer match classic perlin noise.
+//
+float SimplexPerlin2D( vec2 P )
+{
+	//	simplex math constants
+	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
+	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
+	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR );		//	vertex info for simplex triangle
+
+	//	establish our grid cell.
+	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
+	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	establish vectors to the 3 corners of our simplex triangle
+	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
+	vec4 v1pos_v1hash = (v0.x < v0.y) ? vec4(SIMPLEX_POINTS.xy, hash_x.y, hash_y.y) : vec4(SIMPLEX_POINTS.yx, hash_x.z, hash_y.z);
+	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
+
+	//	calculate the dotproduct of our 3 corner vectors with 3 random normalized vectors
+	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999.xxx;
+	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999.xxx;
+	vec3 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * vec3( v0.x, v12.xz ) + grad_y * vec3( v0.y, v12.yw ) );
+
+	//	I figured the maximum value of this noise would be if all random vectors point to the center of a triangle and the sample was taken from the center.
+	//	This number is the reciprocal of that maximum value
+	const float FINAL_NORMALIZATION = 47.675874497779401809808370488584;		//	scales the final result to 1.0->-1.0 range
+
+	//	evaluate the suflet, sum and return
+	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
+	m = max(0.5 - m, 0.0);
+	m = m*m;
+	m = m*m;
+	return dot(m, grad_results) * FINAL_NORMALIZATION;
+}
+
+
+//
+//	SimplexCellular2D
+//	cellular noise over a simplex (triangular) grid
+//	Return value range of 0.0->~1.0
+//
+//	simplex math based off Stefan Gustavson's and Ian McEwan's work at...
+//	http://github.com/ashima/webgl-noise
+//
+float SimplexCellular2D( vec2 P )
+{
+	//	simplex math constants
+	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
+	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
+	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle.
+	const float INV_SIMPLEX_TRI_HEIGHT = 1.4142135623730950488016887242097;	//	1.0 / sqrt( 0.5 )
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR ) * INV_SIMPLEX_TRI_HEIGHT.xxx;		//	vertex info for simplex triangle
+
+	//	establish our grid cell.
+	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
+	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	push hash values to extremes of jitter window
+	const float JITTER_WINDOW = 0.14942924536134225401731517482694;		// this will guarentee no artifacts.   ( SIMPLEX_TRI_HEIGHT - HALF_SIMPLEX_TRI_EDGE_LEN ) / 2.0
+	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW;
+	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
+
+	//	calculate sq distance to closest point
+	vec2 p0 = ( ( Pi - dot( Pi, UNSKEWFACTOR.xx ).xx ) - P ) * INV_SIMPLEX_TRI_HEIGHT.xx;
+	vec3 p_x = vec3( p0.x, (p0.x < p0.y) ? ( hash_x.y + SIMPLEX_POINTS.x ) : ( hash_x.z + SIMPLEX_POINTS.y ) , hash_x.w + SIMPLEX_POINTS.z ) + vec3( hash_x.x, p0.xx );
+	vec3 p_y = vec3( p0.y, (p0.x < p0.y) ? ( hash_y.y + SIMPLEX_POINTS.y ) : ( hash_y.z + SIMPLEX_POINTS.x ) , hash_y.w + SIMPLEX_POINTS.z ) + vec3( hash_y.x, p0.yy );
+	vec3 distsq = p_x*p_x + p_y*p_y;
+	return min( distsq.x, min( distsq.y, distsq.z ) );
 }
