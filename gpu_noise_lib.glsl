@@ -374,71 +374,40 @@ void FAST32_hash_3D( 	vec3 gridcell,
 //	( smoothly increase from 0.0 to 1.0 as x increases linearly from 0.0 to 1.0 )
 //	http://briansharpe.wordpress.com/2011/11/14/two-useful-interpolation-functions-for-noise-development/
 //
-
-//	Hermine Curve.  Same as SmoothStep().  As used by Perlin in Original Noise.
-//	3x^2-2x^3
-float Interpolation_C1( float x ) { return x * x * (3.0 - 2.0 * x); }
+float Interpolation_C1( float x ) { return x * x * (3.0 - 2.0 * x); }   //  3x^2-2x^3  ( Hermine Curve.  Same as SmoothStep().  As used by Perlin in Original Noise. )
 vec2 Interpolation_C1( vec2 x ) { return x * x * (3.0 - 2.0 * x); }
 vec3 Interpolation_C1( vec3 x ) { return x * x * (3.0 - 2.0 * x); }
 vec4 Interpolation_C1( vec4 x ) { return x * x * (3.0 - 2.0 * x); }
 
-//	Quintic Curve.  As used by Perlin in Improved Noise.  http://mrl.nyu.edu/~perlin/paper445.pdf
-//	6x^5-15x^4+10x^3
-float Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
+float Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }   //  6x^5-15x^4+10x^3	( Quintic Curve.  As used by Perlin in Improved Noise.  http://mrl.nyu.edu/~perlin/paper445.pdf )
 vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 
-//	Faster than Perlin Quintic.  Not quite as good shape.
-//	7x^3-7x^4+x^7
-float Interpolation_C2_Fast( float x ) { float x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }
+float Interpolation_C2_Fast( float x ) { float x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }   //  7x^3-7x^4+x^7   ( Faster than Perlin Quintic.  Not quite as good shape. )
 vec2 Interpolation_C2_Fast( vec2 x ) { vec2 x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }
 vec3 Interpolation_C2_Fast( vec3 x ) { vec3 x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }
 vec4 Interpolation_C2_Fast( vec4 x ) { vec4 x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }
 
-//	C3 Interpolation function.  If anyone ever needs it... :)
-//	25x^4-48x^5+25x^6-x^10
-float Interpolation_C3( float x ) { float xsq = x*x; float xsqsq = xsq*xsq; return xsqsq * ( 25.0 - 48.0 * x + xsq * ( 25.0 - xsqsq ) ); }
+float Interpolation_C3( float x ) { float xsq = x*x; float xsqsq = xsq*xsq; return xsqsq * ( 25.0 - 48.0 * x + xsq * ( 25.0 - xsqsq ) ); }   //  25x^4-48x^5+25x^6-x^10		( C3 Interpolation function.  If anyone ever needs it... :) )
 vec2 Interpolation_C3( vec2 x ) { vec2 xsq = x*x; vec2 xsqsq = xsq*xsq; return xsqsq * ( 25.0 - 48.0 * x + xsq * ( 25.0 - xsqsq ) ); }
 vec3 Interpolation_C3( vec3 x ) { vec3 xsq = x*x; vec3 xsqsq = xsq*xsq; return xsqsq * ( 25.0 - 48.0 * x + xsq * ( 25.0 - xsqsq ) ); }
 vec4 Interpolation_C3( vec4 x ) { vec4 xsq = x*x; vec4 xsqsq = xsq*xsq; return xsqsq * ( 25.0 - 48.0 * x + xsq * ( 25.0 - xsqsq ) ); }
 
 
 //
-//	Falloff functions defined in XSquared
-//	( smooth falloff from 1.0 to 0.0 as xsq ranges from 0.0 to 1.0.  Suitable for fading out from a point via dot product )
+//	Interpolation defined in XSquared
+//	( smoothly increase from 0.0 to 1.0 as xsq increases from 0.0 to 1.0 )
 //	http://briansharpe.wordpress.com/2011/11/14/two-useful-interpolation-functions-for-noise-development/
 //
+float Interpolation_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return 1.0 - xsq*xsq; }   //  1.0 - ( 1.0 - x*x )^2
+float Interpolation_Xsq_C2( float xsq ) { float xsqsq = xsq*xsq; return xsqsq * ( 9.0 - 16.0 * xsq + xsqsq * ( 9.0 - xsqsq ) ); }   //  9x^4-16x^6+9x^8-x^12
+float Interpolation_Xsq_C2_Fast( float xsq ) { float xsqsq = xsq*xsq; return xsqsq * ( 5.0 + xsq * ( xsqsq - 5.0 ) ); }   //  5x^4-5x^6+x^10   ( or for an alternative which requires no extra registers 3x^4-3x^8+x^12 )
+float Interpolation_Xsq_C3( float xsq ) { return xsq * xsq * ( 10.0 + xsq * ( xsq * ( 15.0 - 4.0 * xsq ) - 20.0 ) ); }   //  10x^4-20x^6+15x^8-4x^10
 
-//	C1 XSquared Falloff
-//	Used by Humus for lighting falloff in Just Cause 2.
-//  "Making it large, beautiful, fast and consistent – Lessons learned developing Just Cause 2 by Emil Persson", GPUPro 1
-//	( 1.0 - x*x )^2
-float Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }
-vec2 Falloff_Xsq_C1( vec2 xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }
-vec3 Falloff_Xsq_C1( vec3 xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }
-vec4 Falloff_Xsq_C1( vec4 xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }
-
-//	C2 XSquared Falloff
-//	1.0 - ( 9x^4-16x^6+9x^8-x^12 )
-float Falloff_Xsq_C2( float xsq ) { float xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 9.0 - 16.0 * xsq + xsqsq * ( 9.0 - xsqsq ) ); }
-vec2 Falloff_Xsq_C2( vec2 xsq ) { vec2 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 9.0 - 16.0 * xsq + xsqsq * ( 9.0 - xsqsq ) ); }
-vec3 Falloff_Xsq_C2( vec3 xsq ) { vec3 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 9.0 - 16.0 * xsq + xsqsq * ( 9.0 - xsqsq ) ); }
-vec4 Falloff_Xsq_C2( vec4 xsq ) { vec4 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 9.0 - 16.0 * xsq + xsqsq * ( 9.0 - xsqsq ) ); }
-
-//	Fast C2 XSquared falloff
-//	1.0 - ( 5x^4-5x^6+x^10 )      NOTE: alternative could be this.  1.0 - ( 3x^4-3x^8+x^12 ).  Shape not quite as good but requires no extra registers
-float Falloff_Xsq_C2_Fast( float xsq ) { float xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 5.0 + xsq * ( xsqsq - 5.0 ) ); }
-vec2 Falloff_Xsq_C2_Fast( vec2 xsq ) { vec2 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 5.0 + xsq * ( xsqsq - 5.0 ) ); }
-vec3 Falloff_Xsq_C2_Fast( vec3 xsq ) { vec3 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 5.0 + xsq * ( xsqsq - 5.0 ) ); }
-vec4 Falloff_Xsq_C2_Fast( vec4 xsq ) { vec4 xsqsq = xsq*xsq; return 1.0 - xsqsq * ( 5.0 + xsq * ( xsqsq - 5.0 ) ); }
-
-//	C3 XSquared falloff.  If anyone ever needs it... :)
-//	1.0 - ( 10x^4-20x^6+15x^8-4x^10 )
-float Falloff_Xsq_C3( float xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq * ( 15.0 - 4.0 * xsq ) - 20.0 ) ); }
-vec2 Falloff_Xsq_C3( vec2 xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq * ( 15.0 - 4.0 * xsq ) - 20.0 ) ); }
-vec3 Falloff_Xsq_C3( vec3 xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq * ( 15.0 - 4.0 * xsq ) - 20.0 ) ); }
-vec4 Falloff_Xsq_C3( vec4 xsq ) {	return 1.0 - xsq * xsq * ( 10.0 + xsq * ( xsq * ( 15.0 - 4.0 * xsq ) - 20.0 ) ); }
+//	( smoothly falloff from 1.0 to 0.0 as xsq increases from 0.0 to 1.0 )
+float Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }   // ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )
+float Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }   // ( 1.0 - x*x )^3.   NOTE: 2nd derivative is x=0.0 at 1.0, but non-zero at x=0.0
 
 
 
@@ -960,7 +929,7 @@ float PolkaDot2D( 	vec2 P,
 	Pf *= RADIUS.xx;
 	Pf -= ( RADIUS.xx - 1.0.xx );
 	Pf += hash.xy * ( RADIUS.xx - 2.0.xx );
-	return Falloff_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
+	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;
 }
 //	PolkaDot2D_FixedRadius, PolkaDot2D_FixedValue, PolkaDot2D_FixedRadius_FixedValue TODO
 
@@ -996,7 +965,7 @@ float PolkaDot3D( 	vec3 P,
 	Pf *= RADIUS.xxx;
 	Pf -= ( RADIUS.xxx - 1.0.xxx );
 	Pf += hash_lowz.xyz * ( RADIUS.xxx - 2.0.xxx );
-	return Falloff_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
+	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;
 }
 //	PolkaDot3D_FixedRadius, PolkaDot3D_FixedValue, PolkaDot3D_FixedRadius_FixedValue TODO
 
@@ -1031,7 +1000,7 @@ float Stars2D(	vec2 P,
 	Pf *= two_over_radius.xx;
 	Pf -= ( two_over_radius.xx - 1.0.xx );
 	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
-	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;		//	C1 here suggests that this only be used for texturing and not for displacement
+	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;
 }
 
 
