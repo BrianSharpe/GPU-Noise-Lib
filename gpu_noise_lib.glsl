@@ -472,7 +472,7 @@ float Perlin2D( vec2 P )
 	vec2 Pi = floor(P);
 	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
 
-#if 0
+#if 1
 	//
 	//	classic noise looks much better than improved noise in 2D, and with an efficent hash function runs at about the same speed.
 	//	requires 2 random numbers per point.
