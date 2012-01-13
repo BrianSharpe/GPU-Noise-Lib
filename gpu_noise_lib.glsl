@@ -407,7 +407,7 @@ float Interpolation_Xsq_C3( float xsq ) { return xsq * xsq * ( 10.0 + xsq * ( xs
 
 //	( smoothly falloff from 1.0 to 0.0 as xsq increases from 0.0 to 1.0 )
 float Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }   // ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )
-float Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }   // ( 1.0 - x*x )^3.   NOTE: 2nd derivative is x=0.0 at 1.0, but non-zero at x=0.0
+float Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }   // ( 1.0 - x*x )^3.   NOTE: 2nd derivative is 0.0 at x=1.0, but non-zero at x=0.0
 
 
 
@@ -929,7 +929,7 @@ float PolkaDot2D( 	vec2 P,
 	Pf *= RADIUS.xx;
 	Pf -= ( RADIUS.xx - 1.0.xx );
 	Pf += hash.xy * ( RADIUS.xx - 2.0.xx );
-	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;
+	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;	//	NOTE:  We should probably be using Falloff_Xsq_C2 here, but 1.0-Interpolation_Xsq_C2_Fast looks better
 }
 //	PolkaDot2D_FixedRadius, PolkaDot2D_FixedValue, PolkaDot2D_FixedRadius_FixedValue TODO
 
@@ -965,7 +965,7 @@ float PolkaDot3D( 	vec3 P,
 	Pf *= RADIUS.xxx;
 	Pf -= ( RADIUS.xxx - 1.0.xxx );
 	Pf += hash_lowz.xyz * ( RADIUS.xxx - 2.0.xxx );
-	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;
+	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;	//	NOTE:  We should probably be using Falloff_Xsq_C2 here, but 1.0-Interpolation_Xsq_C2_Fast looks better
 }
 //	PolkaDot3D_FixedRadius, PolkaDot3D_FixedValue, PolkaDot3D_FixedRadius_FixedValue TODO
 
