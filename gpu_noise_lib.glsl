@@ -646,15 +646,15 @@ float ValuePerlin2D( vec2 P, float blend_val )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash_x, hash_y, hash_z;
-	FAST32_hash_2D( Pi, hash_x, hash_y, hash_z );
+	vec4 hash_x, hash_y, hash_value;
+	FAST32_hash_2D( Pi, hash_x, hash_y, hash_value );
 
 	//	calculate the gradient results
 	vec4 grad_x = hash_x - 0.49999.xxxx;
 	vec4 grad_y = hash_y - 0.49999.xxxx;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 	grad_results *= 1.4142135623730950488016887242097.xxxx;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.5)
-	grad_results = mix( (hash_z * 2.0.xxxx - 1.0.xxxx), grad_results, blend_val );
+	grad_results = mix( (hash_value * 2.0.xxxx - 1.0.xxxx), grad_results, blend_val );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
@@ -678,8 +678,8 @@ float ValuePerlin3D( vec3 P, float blend_val )
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1;
-	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1 );
+	vec4 hashx0, hashy0, hashz0, hash_value0, hashx1, hashy1, hashz1, hash_value1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hash_value0, hashx1, hashy1, hashz1, hash_value1 );
 
 	//	calculate the gradients
 	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
@@ -692,8 +692,8 @@ float ValuePerlin3D( vec3 P, float blend_val )
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 	grad_results_0 *= 1.1547005383792515290182975610039.xxxx;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.75)
 	grad_results_1 *= 1.1547005383792515290182975610039.xxxx;
-	grad_results_0 = mix( (hashw0 * 2.0.xxxx - 1.0.xxxx), grad_results_0, blend_val );
-	grad_results_1 = mix( (hashw1 * 2.0.xxxx - 1.0.xxxx), grad_results_1, blend_val );
+	grad_results_0 = mix( (hash_value0 * 2.0.xxxx - 1.0.xxxx), grad_results_0, blend_val );
+	grad_results_1 = mix( (hash_value1 * 2.0.xxxx - 1.0.xxxx), grad_results_1, blend_val );
 
 	//	blend the gradients and return
 	vec3 blend = Interpolation_C2( Pf );
@@ -719,8 +719,8 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hash_x, hash_y, hash_z;
-	FAST32_hash_2D( Pi, hash_x, hash_y, hash_z );
+	vec4 hash_x, hash_y, hash_value;
+	FAST32_hash_2D( Pi, hash_x, hash_y, hash_value );
 
 	//	calculate the gradient results
 	vec4 grad_x = hash_x - 0.49999.xxxx;
@@ -728,7 +728,7 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 
 	//	invert the gradient to convert from perlin to cubist
-	grad_results = ( hash_z - 0.5.xxxx ) * ( 1.0.xxxx / grad_results );
+	grad_results = ( hash_value - 0.5.xxxx ) * ( 1.0.xxxx / grad_results );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
@@ -758,8 +758,8 @@ float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
-	vec4 hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1;
-	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashw0, hashx1, hashy1, hashz1, hashw1 );
+	vec4 hashx0, hashy0, hashz0, hash_value0, hashx1, hashy1, hashz1, hash_value1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hash_value0, hashx1, hashy1, hashz1, hash_value1 );
 
 	//	calculate the gradients
 	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
@@ -772,8 +772,8 @@ float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 
 	//	invert the gradient to convert from perlin to cubist
-	grad_results_0 = ( hashw0 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_0 );
-	grad_results_1 = ( hashw1 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_1 );
+	grad_results_0 = ( hash_value0 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_0 );
+	grad_results_1 = ( hash_value1 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_1 );
 
 	//	blend the gradients and return
 	vec3 blend = Interpolation_C2( Pf );
@@ -1123,7 +1123,7 @@ float SimplexCellular2D( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	push hash values to extremes of jitter window
-	const float JITTER_WINDOW = 0.14942924536134225401731517482694;		// this will guarentee no artifacts.   ( SIMPLEX_TRI_HEIGHT - ( SIMPLEX_TRI_EDGE_LEN / 2.0 ) ) / 2.0
+	const float JITTER_WINDOW = 0.10566243270259355887271280487451;		// this will guarentee no artifacts.	edgelen of triangle with hypotenuse of 0.14942924536134225401731517482694 = ( SIMPLEX_TRI_HEIGHT - ( SIMPLEX_TRI_EDGE_LEN / 2.0 ) ) / 2.0
 	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW;
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
 
@@ -1289,7 +1289,7 @@ float SimplexCellular3D( vec3 P )
 	//SGPP_hash_3D( Pi, Pi_1, Pi_2, hash_x, hash_y, hash_z );
 
 	//	push hash values to extremes of jitter window
-	const float JITTER_WINDOW = 0.10355339059327376220042218105242;		// this will guarentee no artifacts.   ( SIMPLEX_PYRAMID_HEIGHT - LENGTH_OF_CORNER_TO_CENTRE_OF_SIMPLEX_PYRAMID_FACE ) / 2.0,  ie (sqrt(0.5)-0.5) / 2.0
+	const float JITTER_WINDOW = 0.0597865779345250670558198111;		// this will guarentee no artifacts.  edgelen of triangle with hypotenuse of 0.10355339059327376220042218105242 = (sqrt(0.5)-0.5) / 2.0
 	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW;
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
 	hash_z = Cellular_weight_samples( hash_z ) * JITTER_WINDOW;
