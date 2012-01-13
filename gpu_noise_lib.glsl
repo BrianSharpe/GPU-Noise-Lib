@@ -1008,6 +1008,7 @@ float Stars2D(	vec2 P,
 //	SimplexValue2D
 //	value noise over a simplex (triangular) grid
 //	Return value range of 0.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexvaluesample.jpg
 //
 float SimplexValue2D( vec2 P )
 {
@@ -1049,6 +1050,7 @@ float SimplexValue2D( vec2 P )
 //	SimplexPerlin2D  ( simplex gradient noise )
 //	Perlin noise over a simplex (triangular) grid
 //	Return value range of -1.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexperlinsample.jpg
 //
 //	Implementation originally based off Stefan Gustavson's and Ian McEwan's work at...
 //	http://github.com/ashima/webgl-noise
@@ -1096,6 +1098,7 @@ float SimplexPerlin2D( vec2 P )
 //	SimplexCellular2D
 //	cellular noise over a simplex (triangular) grid
 //	Return value range of 0.0->~1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexcellularsample.jpg
 //
 float SimplexCellular2D( vec2 P )
 {
@@ -1200,6 +1203,7 @@ vec4 Simplex3D_GetSurfletWeights( 	vec4 v1234_x,
 //	SimplexPerlin3D  ( simplex gradient noise )
 //	Perlin noise over a simplex (triangular) grid
 //	Return value range of -1.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexperlinsample.jpg
 //
 //	Implementation originally based off Stefan Gustavson's and Ian McEwan's work at...
 //	http://github.com/ashima/webgl-noise
@@ -1239,6 +1243,7 @@ float SimplexPerlin3D(vec3 P)
 //	SimplexValue3D
 //	Value noise over a simplex (triangular) grid
 //	Return value range of 0.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexvaluesample.jpg
 //
 float SimplexValue3D(vec3 P)
 {
@@ -1262,6 +1267,7 @@ float SimplexValue3D(vec3 P)
 //	SimplexCellular3D
 //	cellular noise over a simplex (triangular) grid
 //	Return value range of 0.0->~1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexcellularsample.jpg
 //
 float SimplexCellular3D( vec3 P )
 {
