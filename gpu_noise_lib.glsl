@@ -1066,6 +1066,7 @@ float SimplexPerlin2D( vec2 P )
 //	SimplexPolkaDot2D
 //	polkadots over a simplex (triangular) grid
 //	Return value range of 0.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexpolkadotsample.jpg
 //
 float SimplexPolkaDot2D( 	vec2 P,
 							float radius, 		//	radius range is 0.0->1.0
@@ -1304,6 +1305,7 @@ float SimplexCellular3D( vec3 P )
 //	SimplexPolkaDot3D
 //	polkadots over a simplex (triangular) grid
 //	Return value range of 0.0->1.0
+//	http://briansharpe.files.wordpress.com/2012/01/simplexpolkadotsample.jpg
 //
 float SimplexPolkaDot3D( 	vec3 P,
 							float radius, 		//	radius range is 0.0->1.0
