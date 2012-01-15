@@ -896,18 +896,20 @@ float Cellular3D(vec3 P)
 	return min(d1.x, d1.y);
 }
 
+
 //
 //	PolkaDot Noise 2D
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
+//	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
 //
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
-//	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
+//	Return value range of 0.0->1.0
 //
 float PolkaDot2D( 	vec2 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
-					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range between 0.0->1.0
+					float radius_low,		//	radius range is 0.0->1.0
+					float radius_high,
+					float max_dimness )		//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -922,29 +924,34 @@ float PolkaDot2D( 	vec2 P,
 	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
 
 	//	user variables
-	float RADIUS = hash.z * RadRange.y + RadRange.x;		//	NOTE: we can parallelize this.  ( but seems like the compiler does it automatically anyway? )
-	float VALUE = hash.w * ValRange.y + ValRange.x;
+	float RADIUS = max( 0.0, radius_low + hash.z * ( radius_high - radius_low ) );
+	float VALUE = 1.0 - max_dimness * hash.w;
+	//float VALUE = RADIUS / max( radius_high, radius_low );	//	this keeps value in proportion to radius.  Behaves better when used for bumpmapping
 
 	//	calc the noise and return
+	RADIUS = 2.0/RADIUS;
 	Pf *= RADIUS.xx;
 	Pf -= ( RADIUS.xx - 1.0.xx );
 	Pf += hash.xy * ( RADIUS.xx - 2.0.xx );
-	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;	//	NOTE:  We should probably be using Falloff_Xsq_C2 here, but 1.0-Interpolation_Xsq_C2_Fast looks better
+	//Pf *= Pf;		//	this gives us a cool box looking effect
+	return Falloff_Xsq_C2( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
 //	PolkaDot2D_FixedRadius, PolkaDot2D_FixedValue, PolkaDot2D_FixedRadius_FixedValue TODO
+
 
 //
 //	PolkaDot Noise 3D
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
+//	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
 //
 //	Generates a noise of smooth falloff polka dots.
 //	Allow for control on value and radius
-//	Return value range of 0.0 -> ValRange.x+ValRange.y
-//	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
+//	Return value range of 0.0->1.0
 //
 float PolkaDot3D( 	vec3 P,
-					vec2 RadRange,		//	RadRange.x = low  RadRange.y = high-low  shader accepts 2.0/radius, so this should generate a range of 2.0->LARGENUM   ( 2.0 is a large dot, LARGENUM is a small dot eg 20.0 )
-					vec2 ValRange	)	//	ValRange.x = low  ValRange.y = high-low  should generate a range between 0.0->1.0
+					float radius_low,		//	radius range is 0.0->1.0
+					float radius_high,
+					float max_dimness )		//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
@@ -958,16 +965,20 @@ float PolkaDot3D( 	vec3 P,
 	//SGPP_hash_3D( Pi * 2.0, hash_lowz, hash_highz );
 
 	//	user variables
-	float RADIUS = hash_lowz.w * RadRange.y + RadRange.x;		//	NOTE: we can parallelize this.  ( but seems like the compiler does it automatically anyway? )
-	float VALUE = hash_highz.x * ValRange.y + ValRange.x;
+	float RADIUS = max( 0.0, radius_low + hash_lowz.w * ( radius_high - radius_low ) );
+	float VALUE = 1.0 - max_dimness * hash_highz.x;
+	//float VALUE = RADIUS / max( radius_high, radius_low );	//	this keeps value in proportion to radius.  Behaves better when used for bumpmapping
 
 	//	calc the noise and return
+	RADIUS = 2.0/RADIUS;
 	Pf *= RADIUS.xxx;
 	Pf -= ( RADIUS.xxx - 1.0.xxx );
 	Pf += hash_lowz.xyz * ( RADIUS.xxx - 2.0.xxx );
-	return ( 1.0 - Interpolation_Xsq_C2_Fast( min( dot( Pf, Pf ), 1.0 ) ) ) * VALUE;	//	NOTE:  We should probably be using Falloff_Xsq_C2 here, but 1.0-Interpolation_Xsq_C2_Fast looks better
+	//Pf *= Pf;		//	this gives us a cool box looking effect
+	return Falloff_Xsq_C2( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
 //	PolkaDot3D_FixedRadius, PolkaDot3D_FixedValue, PolkaDot3D_FixedRadius_FixedValue TODO
+
 
 //
 //	Stars2D
@@ -1003,48 +1014,6 @@ float Stars2D(	vec2 P,
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;
 }
 
-
-//
-//	SimplexValue2D
-//	value noise over a simplex (triangular) grid
-//	Return value range of 0.0->1.0
-//	http://briansharpe.files.wordpress.com/2012/01/simplexvaluesample.jpg
-//
-float SimplexValue2D( vec2 P )
-{
-	//	simplex math based off Stefan Gustavson's and Ian McEwan's work at...
-	//	http://github.com/ashima/webgl-noise
-
-	//	simplex math constants
-	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
-	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
-	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle
-	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR );		//	vertex info for simplex triangle
-
-	//	establish our grid cell.
-	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
-	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
-
-	//	calculate the hash.
-	//	( various hashing methods listed in order of speed )
-	vec4 hash = FAST32_hash_2D( Pi );
-	//vec4 hash = BBS_hash_2D( Pi );
-	//vec4 hash = SGPP_hash_2D( Pi );
-	//vec4 hash = BBS_hash_hq_2D( Pi );
-
-	//	establish vectors to the 3 corners of our simplex triangle
-	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
-	vec3 v1pos_v1hash = (v0.x < v0.y) ? vec3(SIMPLEX_POINTS.xy, hash.y) : vec3(SIMPLEX_POINTS.yx, hash.z);
-	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
-	vec3 v012_vals = vec3( hash.x, v1pos_v1hash.z, hash.w );
-
-	//	evaluate the surflet, sum and return
-	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
-	m = max(0.5.xxx - m, 0.0.xxx);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
-	m = m*m;
-	m = m*m;
-	return dot(m, v012_vals) * 16.0;  //	16 = 1.0 / ( 0.5^4 )
-}
 
 //
 //	SimplexPerlin2D  ( simplex gradient noise )
@@ -1093,6 +1062,52 @@ float SimplexPerlin2D( vec2 P )
 	return dot(m, grad_results) * FINAL_NORMALIZATION;
 }
 
+//
+//	SimplexPolkaDot2D
+//	polkadots over a simplex (triangular) grid
+//	Return value range of 0.0->1.0
+//
+float SimplexPolkaDot2D( 	vec2 P,
+							float radius, 		//	radius range is 0.0->1.0
+							float max_dimness )	//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
+{
+	//	simplex math based off Stefan Gustavson's and Ian McEwan's work at...
+	//	http://github.com/ashima/webgl-noise
+
+	//	simplex math constants
+	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
+	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
+	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle
+	const float INV_SIMPLEX_TRI_HALF_EDGELEN = 2.4494897427831780981972840747059;	// sqrt( 0.75 )/(2.0*sqrt( 0.5 ))
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR );		//	vertex info for simplex triangle
+
+	//	establish our grid cell.
+	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
+	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+
+	//	establish vectors to the 4 corners of our simplex triangle
+	vec2 v0 = ( Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P );
+	vec4 v0123_x = vec4( 0.0, SIMPLEX_POINTS.xyz ) + v0.x;
+	vec4 v0123_y = vec4( 0.0, SIMPLEX_POINTS.yxz ) + v0.y;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = BBS_hash_2D( Pi );
+	//vec4 hash = SGPP_hash_2D( Pi );
+	//vec4 hash = BBS_hash_hq_2D( Pi );
+
+	//	apply user controls
+	radius = INV_SIMPLEX_TRI_HALF_EDGELEN/radius;		//	INV_SIMPLEX_TRI_HALF_EDGELEN here is to scale to a nice 0.0->1.0 range
+	v0123_x *= radius.xxxx;
+	v0123_y *= radius.xxxx;
+
+	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
+	vec4 closest_pt_mask = max( 0.0.xxxx, 1.0.xxxx - ( v0123_x*v0123_x + v0123_y*v0123_y ) );
+	closest_pt_mask = closest_pt_mask*closest_pt_mask*closest_pt_mask;
+	return dot( 1.0.xxxx - hash * max_dimness.xxxx, closest_pt_mask );
+}
+
 
 //
 //	SimplexCellular2D
@@ -1123,7 +1138,7 @@ float SimplexCellular2D( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	push hash values to extremes of jitter window
-	const float JITTER_WINDOW = 0.10566243270259355887271280487451;		// this will guarentee no artifacts.	edgelen of triangle with hypotenuse of 0.14942924536134225401731517482694 = ( SIMPLEX_TRI_HEIGHT - ( SIMPLEX_TRI_EDGE_LEN / 2.0 ) ) / 2.0
+	const float JITTER_WINDOW = ( 0.10566243270259355887271280487451 * INV_SIMPLEX_TRI_HEIGHT );		// this will guarentee no artifacts.
 	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW;
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
 
@@ -1240,30 +1255,6 @@ float SimplexPerlin3D(vec3 P)
 }
 
 //
-//	SimplexValue3D
-//	Value noise over a simplex (triangular) grid
-//	Return value range of 0.0->1.0
-//	http://briansharpe.files.wordpress.com/2012/01/simplexvaluesample.jpg
-//
-float SimplexValue3D(vec3 P)
-{
-	//	calculate the simplex vector and index math
-	vec3 Pi;
-	vec3 Pi_1;
-	vec3 Pi_2;
-	vec4 v1234_x;
-	vec4 v1234_y;
-	vec4 v1234_z;
-	Simplex3D_GetCornerVectors( P, Pi, Pi_1, Pi_2, v1234_x, v1234_y, v1234_z );
-
-	//	calculate the hash
-	vec4 hash = FAST32_hash_3D( Pi, Pi_1, Pi_2 );
-
-	//	sum with the surflet and return
-	return dot( Simplex3D_GetSurfletWeights( v1234_x, v1234_y, v1234_z ), hash ) * 8.0;	  //	8 = 1.0 / ( 0.5^3 )
-}
-
-//
 //	SimplexCellular3D
 //	cellular noise over a simplex (triangular) grid
 //	Return value range of 0.0->~1.0
@@ -1289,13 +1280,13 @@ float SimplexCellular3D( vec3 P )
 	//SGPP_hash_3D( Pi, Pi_1, Pi_2, hash_x, hash_y, hash_z );
 
 	//	push hash values to extremes of jitter window
-	const float JITTER_WINDOW = 0.0597865779345250670558198111;		// this will guarentee no artifacts.  edgelen of triangle with hypotenuse of 0.10355339059327376220042218105242 = (sqrt(0.5)-0.5) / 2.0
+	const float INV_SIMPLEX_PYRAMID_HEIGHT = 1.4142135623730950488016887242097;	//	1.0 / sqrt( 0.5 )   This scales things so to a nice 0.0->1.0 range
+	const float JITTER_WINDOW = ( 0.0597865779345250670558198111 * INV_SIMPLEX_PYRAMID_HEIGHT) ;		// this will guarentee no artifacts.
 	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW;
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
 	hash_z = Cellular_weight_samples( hash_z ) * JITTER_WINDOW;
 
-	//	offset the vectors.  ( and also scale so we can have a nice 0.0->1.0 range )
-	const float INV_SIMPLEX_PYRAMID_HEIGHT = 1.4142135623730950488016887242097;	//	1.0 / sqrt( 0.5 )
+	//	offset the vectors.
 	v1234_x *= INV_SIMPLEX_PYRAMID_HEIGHT;
 	v1234_y *= INV_SIMPLEX_PYRAMID_HEIGHT;
 	v1234_z *= INV_SIMPLEX_PYRAMID_HEIGHT;
@@ -1306,4 +1297,39 @@ float SimplexCellular3D( vec3 P )
 	//	calc the distance^2 to the closest point
 	vec4 distsq = v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z;
 	return min( min( distsq.x, distsq.y ), min( distsq.z, distsq.w ) );
+}
+
+
+//
+//	SimplexPolkaDot3D
+//	polkadots over a simplex (triangular) grid
+//	Return value range of 0.0->1.0
+//
+float SimplexPolkaDot3D( 	vec3 P,
+							float radius, 		//	radius range is 0.0->1.0
+							float max_dimness )	//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
+{
+	//	calculate the simplex vector and index math
+	vec3 Pi;
+	vec3 Pi_1;
+	vec3 Pi_2;
+	vec4 v1234_x;
+	vec4 v1234_y;
+	vec4 v1234_z;
+	Simplex3D_GetCornerVectors( P, Pi, Pi_1, Pi_2, v1234_x, v1234_y, v1234_z );
+
+	//	calculate the hash
+	vec4 hash = FAST32_hash_3D( Pi, Pi_1, Pi_2 );
+
+	//	apply user controls
+	const float INV_SIMPLEX_TRI_HALF_EDGELEN = 2.3094010767585030580365951220078;	// scale to a 0.0->1.0 range.  2.0 / sqrt( 0.75 )
+	radius = INV_SIMPLEX_TRI_HALF_EDGELEN/radius;
+	v1234_x *= radius.xxxx;
+	v1234_y *= radius.xxxx;
+	v1234_z *= radius.xxxx;
+
+	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
+	vec4 closest_pt_mask = max( 0.0.xxxx, 1.0.xxxx - ( v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z ) );
+	closest_pt_mask = closest_pt_mask*closest_pt_mask*closest_pt_mask;
+	return dot( 1.0.xxxx - hash * max_dimness.xxxx, closest_pt_mask );
 }
