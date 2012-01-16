@@ -1418,11 +1418,22 @@ float Hermite2D( vec2 P )
 
 	//	scale the hash values
 	hash_gradx = ( hash_gradx - 0.5 );
-	hash_grady = ( hash_grady - 0.5 );		//	should we normalize gradients?
+	hash_grady = ( hash_grady - 0.5 );
+
+#if 0
+	//	normalize gradients
+	vec4 norm = inversesqrt( hash_gradx * hash_gradx + hash_grady * hash_grady );
+	hash_gradx *= norm;
+	hash_grady *= norm;
+	const float FINAL_NORM_VAL = 2.2627416997969520780827019587355;
+#else
+	//	unnormalized gradients
+	const float FINAL_NORM_VAL = 3.2;  // 3.2 = 1.0 / ( 0.5 * 0.3125 * 2.0 )
+#endif
 
 	//	evaluate the hermite
 	vec4 qh_results = QuinticHermite( Pf.y, hash_gradx.xy, hash_gradx.zw, hash_grady.xy, hash_grady.zw );
-	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * 3.2;  // 3.2 = 1.0 / ( 0.5 * 0.3125 * 2.0 )
+	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * FINAL_NORM_VAL;
 }
 
 //
@@ -1441,19 +1452,35 @@ float Hermite3D( vec3 P )
 	vec4 hash_gradx0, hash_grady0, hash_gradz0, hash_gradx1, hash_grady1, hash_gradz1;
 	FAST32_hash_3D( Pi, hash_gradx0, hash_grady0, hash_gradz0, hash_gradx1, hash_grady1, hash_gradz1 );
 
-	//	scale the gradients by user input
+	//	scale the hash values
 	hash_gradx0 = ( hash_gradx0 - 0.5 );
 	hash_grady0 = ( hash_grady0 - 0.5 );
 	hash_gradz0 = ( hash_gradz0 - 0.5 );
 	hash_gradx1 = ( hash_gradx1 - 0.5 );
 	hash_grady1 = ( hash_grady1 - 0.5 );
-	hash_gradz1 = ( hash_gradz1 - 0.5 );		//	should we normalize gradients?
+	hash_gradz1 = ( hash_gradz1 - 0.5 );
+
+#if 0
+	//	normalize gradients
+	vec4 norm0 = inversesqrt( hash_gradx0 * hash_gradx0 + hash_grady0 * hash_grady0 + hash_gradz0 * hash_gradz0 );
+	hash_gradx0 *= norm0;
+	hash_grady0 *= norm0;
+	hash_gradz0 *= norm0;
+	vec4 norm1 = inversesqrt( hash_gradx1 * hash_gradx1 + hash_grady1 * hash_grady1 + hash_gradz1 * hash_gradz1 );
+	hash_gradx1 *= norm1;
+	hash_grady1 *= norm1;
+	hash_gradz1 *= norm1;
+	const float FINAL_NORM_VAL = 1.8475208614068024464292760976063;
+#else
+	//	unnormalized gradients
+	const float FINAL_NORM_VAL = (1.0/0.46875);  // = 1.0 / ( 0.5 * 0.3125 * 3.0 )
+#endif
 
 	//	evaluate the hermite
 	vec4 ival_results, igrad_results_x, igrad_results_y;
 	QuinticHermite( Pf.z, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results, igrad_results_x, igrad_results_y );
 	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0.xx ), vec4( igrad_results_y.zw, 0.0.xx ) );
-	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * (1.0/0.46875);  // = 1.0 / ( 0.5 * 0.3125 * 3.0 )
+	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * FINAL_NORM_VAL;
 }
 
 //
@@ -1478,7 +1505,7 @@ float ValueHermite2D( 	vec2 P,
 
 	//	scale the hash values
 	hash_gradx = ( hash_gradx - 0.5 ) * gradient_scale;
-	hash_grady = ( hash_grady - 0.5 ) * gradient_scale;		//	should we normalize gradients?
+	hash_grady = ( hash_grady - 0.5 ) * gradient_scale;		//	hmmm...   should we normalize gradients?
 	hash_value = ( hash_value - 0.5 ) * value_scale;
 
 	//	evaluate the hermite
@@ -1507,13 +1534,13 @@ float ValueHermite3D( 	vec3 P,
 	vec4 hash_value0, hash_gradx0, hash_grady0, hash_gradz0, hash_value1, hash_gradx1, hash_grady1, hash_gradz1;
 	FAST32_hash_3D( Pi, hash_value0, hash_gradx0, hash_grady0, hash_gradz0, hash_value1, hash_gradx1, hash_grady1, hash_gradz1 );
 
-	//	scale the gradients by user input
+	//	scale the hash values
 	hash_gradx0 = ( hash_gradx0 - 0.5 ) * gradient_scale;
 	hash_grady0 = ( hash_grady0 - 0.5 ) * gradient_scale;
 	hash_gradz0 = ( hash_gradz0 - 0.5 ) * gradient_scale;
 	hash_gradx1 = ( hash_gradx1 - 0.5 ) * gradient_scale;
 	hash_grady1 = ( hash_grady1 - 0.5 ) * gradient_scale;
-	hash_gradz1 = ( hash_gradz1 - 0.5 ) * gradient_scale;		//	should we normalize gradients?
+	hash_gradz1 = ( hash_gradz1 - 0.5 ) * gradient_scale;		//	hmmm...   should we normalize gradients?
 	hash_value0 = ( hash_value0 - 0.5 ) * value_scale;
 	hash_value1 = ( hash_value1 - 0.5 ) * value_scale;
 
