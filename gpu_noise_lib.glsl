@@ -1417,8 +1417,8 @@ float Hermite2D( vec2 P )
 	FAST32_hash_2D( Pi, hash_gradx, hash_grady );
 
 	//	scale the hash values
-	hash_gradx = ( hash_gradx - 0.5 );
-	hash_grady = ( hash_grady - 0.5 );
+	hash_gradx = ( hash_gradx - 0.49999);
+	hash_grady = ( hash_grady - 0.49999);
 
 #if 0
 	//	normalize gradients
@@ -1453,12 +1453,12 @@ float Hermite3D( vec3 P )
 	FAST32_hash_3D( Pi, hash_gradx0, hash_grady0, hash_gradz0, hash_gradx1, hash_grady1, hash_gradz1 );
 
 	//	scale the hash values
-	hash_gradx0 = ( hash_gradx0 - 0.5 );
-	hash_grady0 = ( hash_grady0 - 0.5 );
-	hash_gradz0 = ( hash_gradz0 - 0.5 );
-	hash_gradx1 = ( hash_gradx1 - 0.5 );
-	hash_grady1 = ( hash_grady1 - 0.5 );
-	hash_gradz1 = ( hash_gradz1 - 0.5 );
+	hash_gradx0 = ( hash_gradx0 - 0.49999);
+	hash_grady0 = ( hash_grady0 - 0.49999);
+	hash_gradz0 = ( hash_gradz0 - 0.49999);
+	hash_gradx1 = ( hash_gradx1 - 0.49999);
+	hash_grady1 = ( hash_grady1 - 0.49999);
+	hash_gradz1 = ( hash_gradz1 - 0.49999);
 
 #if 0
 	//	normalize gradients
@@ -1504,9 +1504,9 @@ float ValueHermite2D( 	vec2 P,
 	FAST32_hash_2D( Pi, hash_value, hash_gradx, hash_grady );
 
 	//	scale the hash values
-	hash_gradx = ( hash_gradx - 0.5 ) * gradient_scale;
-	hash_grady = ( hash_grady - 0.5 ) * gradient_scale;		//	hmmm...   should we normalize gradients?
-	hash_value = ( hash_value - 0.5 ) * value_scale;
+	hash_gradx = ( hash_gradx - 0.49999) * gradient_scale;
+	hash_grady = ( hash_grady - 0.49999) * gradient_scale;		//	hmmm...   should we normalize gradients?
+	hash_value = ( hash_value - 0.5) * value_scale;
 
 	//	evaluate the hermite
 	vec4 qh_results = QuinticHermite( Pf.y, vec4(hash_value.xy, hash_gradx.xy), vec4(hash_value.zw, hash_gradx.zw), vec4( hash_grady.xy, 0.0.xx ), vec4( hash_grady.zw, 0.0.xx ) );
@@ -1535,14 +1535,14 @@ float ValueHermite3D( 	vec3 P,
 	FAST32_hash_3D( Pi, hash_value0, hash_gradx0, hash_grady0, hash_gradz0, hash_value1, hash_gradx1, hash_grady1, hash_gradz1 );
 
 	//	scale the hash values
-	hash_gradx0 = ( hash_gradx0 - 0.5 ) * gradient_scale;
-	hash_grady0 = ( hash_grady0 - 0.5 ) * gradient_scale;
-	hash_gradz0 = ( hash_gradz0 - 0.5 ) * gradient_scale;
-	hash_gradx1 = ( hash_gradx1 - 0.5 ) * gradient_scale;
-	hash_grady1 = ( hash_grady1 - 0.5 ) * gradient_scale;
-	hash_gradz1 = ( hash_gradz1 - 0.5 ) * gradient_scale;		//	hmmm...   should we normalize gradients?
-	hash_value0 = ( hash_value0 - 0.5 ) * value_scale;
-	hash_value1 = ( hash_value1 - 0.5 ) * value_scale;
+	hash_gradx0 = ( hash_gradx0 - 0.49999) * gradient_scale;
+	hash_grady0 = ( hash_grady0 - 0.49999) * gradient_scale;
+	hash_gradz0 = ( hash_gradz0 - 0.49999) * gradient_scale;
+	hash_gradx1 = ( hash_gradx1 - 0.49999) * gradient_scale;
+	hash_grady1 = ( hash_grady1 - 0.49999) * gradient_scale;
+	hash_gradz1 = ( hash_gradz1 - 0.49999) * gradient_scale;		//	hmmm...   should we normalize gradients?
+	hash_value0 = ( hash_value0 - 0.5) * value_scale;
+	hash_value1 = ( hash_value1 - 0.5) * value_scale;
 
 	//	evaluate the hermite
 	vec4 ival_results, igrad_results_x, igrad_results_y;
