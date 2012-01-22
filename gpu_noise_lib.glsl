@@ -9,7 +9,7 @@
 //	Thanks!
 //
 //	Brian Sharpe
-//	brisharpe@yahoo.com
+//	brisharpe CIRCLE_A yahoo DOT com
 //	http://briansharpe.wordpress.com
 //	https://github.com/BrianSharpe
 //
