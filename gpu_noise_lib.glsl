@@ -1142,10 +1142,9 @@ float SimplexCellular2D( vec2 P )
 	hash_y += p0.yyyy;
 	hash_x.yzw += SIMPLEX_POINTS.xyz;
 	hash_y.yzw += SIMPLEX_POINTS.yxz;
-	vec3 p_x = vec3( hash_x.x, (p0.x < p0.y) ? hash_x.y : hash_x.z, hash_x.w );
-	vec3 p_y = vec3( hash_y.x, (p0.x < p0.y) ? hash_y.y : hash_y.z, hash_y.w );
-	vec3 distsq = p_x*p_x + p_y*p_y;
-	return min( distsq.x, min( distsq.y, distsq.z ) );
+	vec4 distsq = hash_x*hash_x + hash_y*hash_y;
+	vec2 tmp = min( distsq.xy, distsq.zw );
+	return min( tmp.x, tmp.y );
 }
 
 //
