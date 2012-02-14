@@ -203,6 +203,23 @@ vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random number
 	P *= P;
 	return fract( (P.x * P.y).xxxx * ( 1.0 / SOMELARGEFLOATS.xyzw ) );
 }
+vec4 FAST32_hash_3D_Cell( vec3 gridcell )	//	generates 4 different random numbers for the single given cell point
+{
+	//    gridcell is assumed to be an integer coordinate
+
+	//	TODO: 	these constants need tweaked to find the best possible noise.
+	//			probably requires some kind of brute force computational searching or something....
+	const vec2 OFFSET = vec2( 50.0, 161.0 );
+	const float DOMAIN = 69.0;
+	const vec4 SOMELARGEFLOATS = vec4( 635.298681, 682.357502, 668.926525, 588.255119 );
+	const vec4 ZINC = vec4( 48.500388, 65.294118, 63.934599, 63.279683 );
+
+	//	truncate the domain
+	gridcell.xyz = gridcell - floor(gridcell * ( 1.0 / DOMAIN )) * DOMAIN;
+	gridcell.xy += OFFSET.xy;
+	gridcell.xy *= gridcell.xy;
+	return fract( ( gridcell.x * gridcell.y ).xxxx * ( 1.0.xxxx / ( SOMELARGEFLOATS + gridcell.zzzz * ZINC ) ) );
+}
 void FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )	//	generates a random number for each of the 8 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
@@ -895,14 +912,15 @@ float Cellular3D(vec3 P)
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
 //	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
 //
+//	TODO, these images have random intensity and random radius.  This noise now has intensity as proportion to radius.  Images need updated.  TODO
+//
 //	Generates a noise of smooth falloff polka dots.
-//	Allow for control on value and radius
+//	Allow for control on radius
 //	Return value range of 0.0->1.0
 //
 float PolkaDot2D( 	vec2 P,
 					float radius_low,		//	radius range is 0.0->1.0
-					float radius_high,
-					float max_dimness )		//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
+					float radius_high	)
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -918,8 +936,7 @@ float PolkaDot2D( 	vec2 P,
 
 	//	user variables
 	float RADIUS = max( 0.0, radius_low + hash.z * ( radius_high - radius_low ) );
-	float VALUE = 1.0 - max_dimness * hash.w;
-	//float VALUE = RADIUS / max( radius_high, radius_low );	//	this keeps value in proportion to radius.  Behaves better when used for bumpmapping
+	float VALUE = RADIUS / max( radius_high, radius_low );	//	new keep value in proportion to radius.  Behaves better when used for bumpmapping, distortion and displacement
 
 	//	calc the noise and return
 	RADIUS = 2.0/RADIUS;
@@ -937,36 +954,32 @@ float PolkaDot2D( 	vec2 P,
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
 //	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
 //
+//	TODO, these images have random intensity and random radius.  This noise now has intensity as proportion to radius.  Images need updated.  TODO
+//
 //	Generates a noise of smooth falloff polka dots.
-//	Allow for control on value and radius
+//	Allow for control on radius
 //	Return value range of 0.0->1.0
 //
 float PolkaDot3D( 	vec3 P,
 					float radius_low,		//	radius range is 0.0->1.0
-					float radius_high,
-					float max_dimness )		//	the maximal dimness of a dot ( 0.0->1.0   0.0 = all dots bright,  1.0 = maximum variation )
+					float radius_high	)
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
 	vec3 Pf = P - Pi;
 
 	//	calculate the hash.
-	//	( various hashing methods listed in order of speed )
-	vec4 hash_lowz, hash_highz;
-	FAST32_hash_3D( Pi * 2.0, hash_lowz, hash_highz );	//	Need to multiply by 2.0 here because we want to use all 8 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
-	//BBS_hash_3D( Pi * 2.0, hash_lowz, hash_highz );
-	//SGPP_hash_3D( Pi * 2.0, hash_lowz, hash_highz );
+	vec4 hash = FAST32_hash_3D_Cell( Pi );
 
 	//	user variables
-	float RADIUS = max( 0.0, radius_low + hash_lowz.w * ( radius_high - radius_low ) );
-	float VALUE = 1.0 - max_dimness * hash_highz.x;
-	//float VALUE = RADIUS / max( radius_high, radius_low );	//	this keeps value in proportion to radius.  Behaves better when used for bumpmapping
+	float RADIUS = max( 0.0, radius_low + hash.w * ( radius_high - radius_low ) );
+	float VALUE = RADIUS / max( radius_high, radius_low );	//	new keep value in proportion to radius.  Behaves better when used for bumpmapping, distortion and displacement
 
 	//	calc the noise and return
 	RADIUS = 2.0/RADIUS;
 	Pf *= RADIUS.xxx;
 	Pf -= ( RADIUS.xxx - 1.0.xxx );
-	Pf += hash_lowz.xyz * ( RADIUS.xxx - 2.0.xxx );
+	Pf += hash.xyz * ( RADIUS.xxx - 2.0.xxx );
 	//Pf *= Pf;		//	this gives us a cool box looking effect
 	return Falloff_Xsq_C2( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
