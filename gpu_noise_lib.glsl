@@ -419,7 +419,7 @@ vec4 Interpolation_C3( vec4 x ) { vec4 xsq = x*x; vec4 xsqsq = xsq*xsq; return x
 //
 float Falloff_Xsq_C1( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq; }	// ( 1.0 - x*x )^2   ( Used by Humus for lighting falloff in Just Cause 2.  GPUPro 1 )
 float Falloff_Xsq_C2( float xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }	// ( 1.0 - x*x )^3.   NOTE: 2nd derivative is 0.0 at x=1.0, but non-zero at x=0.0
-
+vec4 Falloff_Xsq_C2( vec4 xsq ) { xsq = 1.0 - xsq; return xsq*xsq*xsq; }
 
 //
 //	Value Noise 2D
@@ -811,7 +811,7 @@ vec4 Cellular_weight_samples( vec4 samples )
 //	http://briansharpe.files.wordpress.com/2011/12/cellularsample.jpg
 //
 //	Speed up by using 2x2 search window instead of 3x3
-//	produces range of 0.0->~1.0 ( max theoritical value of sqrt( 0.75^2 * 2.0 ) ~= 1.0607 for dist and ( 0.75^2 * 2.0 ) = 1.125 for dist sq, but should rarely reach that )
+//	produces a range of 0.0->1.0
 //
 float Cellular2D(vec2 P)
 {
@@ -845,7 +845,7 @@ float Cellular2D(vec2 P)
 	vec4 dy = Pf.yyyy - hash_y;
 	vec4 d = dx * dx + dy * dy;
 	d.xy = min(d.xy, d.zw);
-	return min(d.x, d.y);
+	return min(d.x, d.y) * ( 1.0 / 1.125 );	//	scale return value from 0.0->1.125 to 0.0->1.0  ( 0.75^2 * 2.0  == 1.125 )
 }
 
 
@@ -855,7 +855,7 @@ float Cellular2D(vec2 P)
 //	http://briansharpe.files.wordpress.com/2011/12/cellularsample.jpg
 //
 //	Speed up by using 2x2x2 search window instead of 3x3x3
-//	produces range of 0.0->~1.0  ( max theoritical value of sqrt( 0.666666^2 * 3.0 ) ~= 1.155 for dist and ( 0.666666^2 * 3.0 ) ~= 1.33333 for dist sq, but should rarely reach that )
+//	produces range of 0.0->1.0
 //
 float Cellular3D(vec3 P)
 {
@@ -903,19 +903,104 @@ float Cellular3D(vec3 P)
 	vec4 d2 = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
 	d1 = min(d1, d2);
 	d1.xy = min(d1.xy, d1.wz);
-	return min(d1.x, d1.y);
+	return min(d1.x, d1.y) * ( 9.0 / 12.0 );	//	scale return value from 0.0->1.333333 to 0.0->1.0  	(2/3)^2 * 3  == (12/9) == 1.333333
 }
+
+
+/*
+//
+//	SparseConvoluation2D
+//
+//	Very crude implementation of sparse convolution noise.  ( derived from the Cellular2D implementation )
+//	return value scaling to 0.0->1.0 range TODO
+//
+float SparseConvoluation2D(vec2 P)
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec2 Pf = P - Pi;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	generate the 4 random points
+	//	restrict the random point offset to eliminate artifacts
+	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+	const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=( (0.5+x)^2 + x^2 )
+	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+
+	//	find the closest squared distance to each point
+	vec4 dx = Pf.xxxx - hash_x;
+	vec4 dy = Pf.yyyy - hash_y;
+	vec4 d = dx * dx + dy * dy;
+
+	//	sum kernels and return
+	const float RADIUS = 1.0 - JITTER_WINDOW;
+	d *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
+	return dot( Falloff_Xsq_C2( min( d, 1.0.xxxx ) ), 1.0.xxxx );
+}
+
+
+//
+//	SparseConvoluation3D
+//
+//	Very crude implementation of sparse convolution noise.  ( derived from the Cellular3D implementation )
+//	return value scaling to 0.0->1.0 range TODO
+//
+float SparseConvoluation3D(vec3 P)
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1;
+	FAST32_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
+	//SGPP_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
+
+	//	generate the 8 random points
+	//	restrict the random point offset to eliminate artifacts
+	//	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+	const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=( 2 * (( 0.5 + x )^2) + x * x )
+	hash_x0 = Cellular_weight_samples( hash_x0 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y0 = Cellular_weight_samples( hash_y0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	hash_x1 = Cellular_weight_samples( hash_x1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+	hash_y1 = Cellular_weight_samples( hash_y1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+	hash_z0 = Cellular_weight_samples( hash_z0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
+	hash_z1 = Cellular_weight_samples( hash_z1 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
+
+	//	find the closest squared distance to each point
+	vec4 dx1 = Pf.xxxx - hash_x0;
+	vec4 dy1 = Pf.yyyy - hash_y0;
+	vec4 dz1 = Pf.zzzz - hash_z0;
+	vec4 dx2 = Pf.xxxx - hash_x1;
+	vec4 dy2 = Pf.yyyy - hash_y1;
+	vec4 dz2 = Pf.zzzz - hash_z1;
+	vec4 d1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+	vec4 d2 = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
+
+	//	sum kernels and return
+	const float RADIUS = ( 1.0 - JITTER_WINDOW );
+	d1 *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
+	d2 *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
+	return dot( Falloff_Xsq_C2( min( d1, 1.0.xxxx ) ) + Falloff_Xsq_C2( min( d2, 1.0.xxxx ) ), 1.0.xxxx );
+}
+*/
 
 
 //
 //	PolkaDot Noise 2D
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
 //	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
-//
 //	TODO, these images have random intensity and random radius.  This noise now has intensity as proportion to radius.  Images need updated.  TODO
 //
 //	Generates a noise of smooth falloff polka dots.
-//	Allow for control on radius
+//	Allow for control on radius.  Intensity is proportional to radius
 //	Return value range of 0.0->1.0
 //
 float PolkaDot2D( 	vec2 P,
@@ -929,10 +1014,6 @@ float PolkaDot2D( 	vec2 P,
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash = FAST32_hash_2D_Cell( Pi );
-	//vec4 hash = FAST32_hash_2D( Pi * 2.0 );		//	Need to multiply by 2.0 here because we want to use all 4 corners once per cell.  No sharing with other cells.  It helps if the hash function has an odd domain.
-	//vec4 hash = BBS_hash_2D( Pi * 2.0 );
-	//vec4 hash = SGPP_hash_2D( Pi * 2.0 );
-	//vec4 hash = BBS_hash_hq_2D( Pi * 2.0 );
 
 	//	user variables
 	float RADIUS = max( 0.0, radius_low + hash.z * ( radius_high - radius_low ) );
@@ -953,11 +1034,10 @@ float PolkaDot2D( 	vec2 P,
 //	PolkaDot Noise 3D
 //	http://briansharpe.files.wordpress.com/2011/12/polkadotsample.jpg
 //	http://briansharpe.files.wordpress.com/2012/01/polkaboxsample.jpg
-//
 //	TODO, these images have random intensity and random radius.  This noise now has intensity as proportion to radius.  Images need updated.  TODO
 //
 //	Generates a noise of smooth falloff polka dots.
-//	Allow for control on radius
+//	Allow for control on radius.  Intensity is proportional to radius
 //	Return value range of 0.0->1.0
 //
 float PolkaDot3D( 	vec3 P,
@@ -992,6 +1072,8 @@ float PolkaDot3D( 	vec3 P,
 //
 //	procedural texture for creating a starry background.  ( looks good when combined with a nebula/space-like colour texture )
 //	NOTE:  Any serious game implementation should hard-code these parameter values for efficiency.
+//
+//	Return value range of 0.0->1.0
 //
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
@@ -1110,9 +1192,9 @@ float SimplexPolkaDot2D( 	vec2 P,
 	v0123_y *= radius.xxxx;
 
 	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
-	vec4 closest_pt_mask = max( 0.0.xxxx, 1.0.xxxx - ( v0123_x*v0123_x + v0123_y*v0123_y ) );
-	closest_pt_mask = closest_pt_mask*closest_pt_mask*closest_pt_mask;
-	return dot( 1.0.xxxx - hash * max_dimness.xxxx, closest_pt_mask );
+	vec4 point_distance = max( 0.0.xxxx, 1.0.xxxx - ( v0123_x*v0123_x + v0123_y*v0123_y ) );
+	point_distance = point_distance*point_distance*point_distance;
+	return dot( 1.0.xxxx - hash * max_dimness.xxxx, point_distance );
 }
 
 
@@ -1121,6 +1203,8 @@ float SimplexPolkaDot2D( 	vec2 P,
 //	cellular noise over a simplex (triangular) grid
 //	Return value range of 0.0->~1.0
 //	http://briansharpe.files.wordpress.com/2012/01/simplexcellularsample.jpg
+//
+//	TODO:  scaling of return value to strict 0.0->1.0 range
 //
 float SimplexCellular2D( vec2 P )
 {
@@ -1266,6 +1350,8 @@ float SimplexPerlin3D(vec3 P)
 //	Return value range of 0.0->~1.0
 //	http://briansharpe.files.wordpress.com/2012/01/simplexcellularsample.jpg
 //
+//	TODO:  scaling of return value to strict 0.0->1.0 range
+//
 float SimplexCellular3D( vec3 P )
 {
 	//	calculate the simplex vector and index math
@@ -1336,9 +1422,9 @@ float SimplexPolkaDot3D( 	vec3 P,
 	v1234_z *= radius.xxxx;
 
 	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
-	vec4 closest_pt_mask = max( 0.0.xxxx, 1.0.xxxx - ( v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z ) );
-	closest_pt_mask = closest_pt_mask*closest_pt_mask*closest_pt_mask;
-	return dot( 1.0.xxxx - hash * max_dimness.xxxx, closest_pt_mask );
+	vec4 point_distance = max( 0.0.xxxx, 1.0.xxxx - ( v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z ) );
+	point_distance = point_distance*point_distance*point_distance;
+	return dot( 1.0.xxxx - hash * max_dimness.xxxx, point_distance );
 }
 
 
