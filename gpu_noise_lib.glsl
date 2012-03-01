@@ -911,12 +911,12 @@ float Cellular3D(vec3 P)
 
 /*
 //
-//	SparseConvoluation2D
+//	SparseConvolution2D
 //
 //	Very crude approximation of sparse convolution noise.  ( derived from the Cellular2D implementation )
 //	return value scaling to 0.0->1.0 range TODO
 //
-float SparseConvoluation2D(vec2 P)
+float SparseConvolution2D(vec2 P)
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -948,12 +948,12 @@ float SparseConvoluation2D(vec2 P)
 
 
 //
-//	SparseConvoluation3D
+//	SparseConvolution3D
 //
 //	Very crude approximation of sparse convolution noise.  ( derived from the Cellular3D implementation )
 //	return value scaling to 0.0->1.0 range TODO
 //
-float SparseConvoluation3D(vec3 P)
+float SparseConvolution3D(vec3 P)
 {
 	//	establish our grid cell and unit position
 	vec3 Pi = floor(P);
@@ -1665,6 +1665,11 @@ float ValueHermite3D( 	vec3 P,
 //	Derivative Noises
 //
 
+//
+//	Value2D_Deriv
+//	Value2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
 vec3 Value2D_Deriv( vec2 P )
 {
 	//	establish our grid cell and unit position
@@ -1680,7 +1685,11 @@ vec3 Value2D_Deriv( vec2 P )
 	return vec3( res0.x, 0.0.xx ) + ( res0.yyw - res0.xxz ) * blend.xzw;
 }
 
-
+//
+//	Value3D_Deriv
+//	Value3D noise with derivatives
+//	returns vec3( value, xderiv, yderiv, zderiv )
+//
 vec4 Value3D_Deriv( vec3 P )
 {
 	//	establish our grid cell and unit position
@@ -1701,6 +1710,11 @@ vec4 Value3D_Deriv( vec3 P )
 	return vec4( res1.x, 0.0.xxx ) + ( vec4( res1.yyw, res4.y ) - vec4( res1.xxz, res4.x ) ) * vec4( blend.x, Interpolation_C2_Deriv( Pf ) );
 }
 
+//
+//	SimplexPerlin2D_Deriv
+//	SimplexPerlin2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
 vec3 SimplexPerlin2D_Deriv( vec2 P )
 {
 	//	simplex math constants
@@ -1749,6 +1763,11 @@ vec3 SimplexPerlin2D_Deriv( vec2 P )
 	return vec3( dot( m4, grad_results ), xderiv, yderiv ) * FINAL_NORMALIZATION;
 }
 
+//
+//	SimplexPerlin3D_Deriv
+//	SimplexPerlin3D noise with derivatives
+//	returns vec3( value, xderiv, yderiv, zderiv )
+//
 vec4 SimplexPerlin3D_Deriv(vec3 P)
 {
 	//	calculate the simplex vector and index math
@@ -1799,6 +1818,11 @@ vec4 SimplexPerlin3D_Deriv(vec3 P)
 }
 
 
+//
+//	Hermite2D_Deriv
+//	Hermite2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
 vec3 Hermite2D_Deriv( vec2 P )
 {
 	//	establish our grid cell and unit position
@@ -1825,6 +1849,11 @@ vec3 Hermite2D_Deriv( vec2 P )
 	const float FINAL_NORM_VAL = 3.2;  // 3.2 = 1.0 / ( 0.5 * 0.3125 * 2.0 )
 #endif
 
+	//
+	//	NOTE:  Some of this stuff can be optimized further.
+	//	But it also appears the compiler is doing a lot of that automatically for us anyway
+	//
+
 	vec4 qh_results_x = QuinticHermite( Pf.y, hash_gradx.xy, hash_gradx.zw, hash_grady.xy, hash_grady.zw );
 	vec4 qh_results_y = QuinticHermite( Pf.x, hash_grady.xz, hash_grady.yw, hash_gradx.xz, hash_gradx.yw );
 	float finalpos = QuinticHermite( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
@@ -1833,6 +1862,11 @@ vec3 Hermite2D_Deriv( vec2 P )
 	return vec3( finalpos, deriv_x, deriv_y ) * FINAL_NORM_VAL;
 }
 
+//
+//	Hermite3D_Deriv
+//	Hermite3D noise with derivatives
+//	returns vec3( value, xderiv, yderiv, zderiv )
+//
 vec4 Hermite3D_Deriv( vec3 P )
 {
 	//	establish our grid cell and unit position
@@ -1868,6 +1902,11 @@ vec4 Hermite3D_Deriv( vec3 P )
 	const float FINAL_NORM_VAL = (1.0/0.46875);  // = 1.0 / ( 0.5 * 0.3125 * 3.0 )
 #endif
 
+	//
+	//	NOTE:  Some of this stuff can be optimized further.
+	//	But it also appears the compiler is doing a lot of that automatically for us anyway
+	//
+
 	//	drop things from three dimensions to two
 	vec4 ival_results_z, igrad_results_x_z, igrad_results_y_z;
 	QuinticHermite( Pf.z, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results_z, igrad_results_x_z, igrad_results_y_z );
@@ -1878,7 +1917,7 @@ vec4 Hermite3D_Deriv( vec3 P )
 							vec4( hash_grady0.xy, hash_grady1.xy ), vec4( hash_grady0.zw, hash_grady1.zw ),
 							ival_results_y, igrad_results_x_y, igrad_results_z_y );
 
-	//	establish a single hermite curve for each dimension
+	//	drop things from two dimensions to one
 	vec4 qh_results_x = QuinticHermite( Pf.y, vec4(ival_results_z.xy, igrad_results_x_z.xy), vec4(ival_results_z.zw, igrad_results_x_z.zw), vec4( igrad_results_y_z.xy, 0.0.xx ), vec4( igrad_results_y_z.zw, 0.0.xx ) );
 	vec4 qh_results_y = QuinticHermite( Pf.x, vec4(ival_results_z.xz, igrad_results_y_z.xz), vec4(ival_results_z.yw, igrad_results_y_z.yw), vec4( igrad_results_x_z.xz, 0.0.xx ), vec4( igrad_results_x_z.yw, 0.0.xx ) );
 	vec4 qh_results_z = QuinticHermite( Pf.x, vec4(ival_results_y.xz, igrad_results_z_y.xz), vec4(ival_results_y.yw, igrad_results_z_y.yw), vec4( igrad_results_x_y.xz, 0.0.xx ), vec4( igrad_results_x_y.yw, 0.0.xx ) );
