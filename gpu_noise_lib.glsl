@@ -400,6 +400,8 @@ float Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 1
 vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
+vec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec4( 6.0.xx, 0.0.xx ) + vec4( -15.0.xx, 30.0.xx ) ) + vec4( 10.0.xx, -60.0.xx ) ) + vec4( 0.0.xx, 30.0.xx ) ); }
+vec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }
 
 float Interpolation_C2_Fast( float x ) { float x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }   //  7x^3-7x^4+x^7   ( Faster than Perlin Quintic.  Not quite as good shape. )
 vec2 Interpolation_C2_Fast( vec2 x ) { vec2 x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }
@@ -504,7 +506,7 @@ float Perlin2D( vec2 P )
 	//
 	//	2D improved perlin noise.
 	//	requires 1 random value per point.
-	//	does not look as good as classic in 2D due to only 4x4 different possible cell types.  But can run a lot faster than classic perlin noise if the hash function is slow
+	//	does not look as good as classic in 2D due to only a small number of possible cell types.  But can run a lot faster than classic perlin noise if the hash function is slow
 	//
 
 	//	calculate the hash.
@@ -911,7 +913,7 @@ float Cellular3D(vec3 P)
 //
 //	SparseConvoluation2D
 //
-//	Very crude implementation of sparse convolution noise.  ( derived from the Cellular2D implementation )
+//	Very crude approximation of sparse convolution noise.  ( derived from the Cellular2D implementation )
 //	return value scaling to 0.0->1.0 range TODO
 //
 float SparseConvoluation2D(vec2 P)
@@ -933,7 +935,7 @@ float SparseConvoluation2D(vec2 P)
 	hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
 
-	//	find the closest squared distance to each point
+	//	find the squared distance to each point
 	vec4 dx = Pf.xxxx - hash_x;
 	vec4 dy = Pf.yyyy - hash_y;
 	vec4 d = dx * dx + dy * dy;
@@ -948,7 +950,7 @@ float SparseConvoluation2D(vec2 P)
 //
 //	SparseConvoluation3D
 //
-//	Very crude implementation of sparse convolution noise.  ( derived from the Cellular3D implementation )
+//	Very crude approximation of sparse convolution noise.  ( derived from the Cellular3D implementation )
 //	return value scaling to 0.0->1.0 range TODO
 //
 float SparseConvoluation3D(vec3 P)
@@ -974,7 +976,7 @@ float SparseConvoluation3D(vec3 P)
 	hash_z0 = Cellular_weight_samples( hash_z0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
 	hash_z1 = Cellular_weight_samples( hash_z1 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
 
-	//	find the closest squared distance to each point
+	//	find the squared distance to each point
 	vec4 dx1 = Pf.xxxx - hash_x0;
 	vec4 dy1 = Pf.yyyy - hash_y0;
 	vec4 dz1 = Pf.zzzz - hash_z0;
@@ -1497,6 +1499,14 @@ void QuinticHermite( 	float x,
 	out_igrad_x = igrad_x0 + (igrad_x1 - igrad_x0) * h123.xxxx;	//	NOTE: gradients of 0.0
 	out_igrad_y = igrad_y0 + (igrad_y1 - igrad_y0) * h123.xxxx;	//	NOTE: gradients of 0.0
 }
+float QuinticHermiteDeriv( float x, float ival0, float ival1, float egrad0, float egrad1 )	// gives the derivative of quintic hermite with start/end acceleration of 0.0
+{
+	const vec3 C0 = vec3( 30.0, -15.0, -15.0 );
+	const vec3 C1 = vec3( -60.0, 32.0, 28.0 );
+	const vec3 C2 = vec3( 30.0, -18.0, -12.0 );
+	const vec3 h123 = ( ( ( C1 + C0 * x.xxx ) * x.xxx ) + C2 ) * ( x*x ).xxx;
+	return dot( vec3( (ival1 - ival0), egrad0, egrad1 ), h123.xyz + vec3( 0.0, 1.0, 0.0 ) );
+}
 
 //
 //	Hermite2D
@@ -1647,4 +1657,240 @@ float ValueHermite3D( 	vec3 P,
 	QuinticHermite( Pf.z, hash_value0, hash_value1, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results, igrad_results_x, igrad_results_y );
 	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0.xx ), vec4( igrad_results_y.zw, 0.0.xx ) );
 	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * normalization_val;
+}
+
+
+
+//
+//	Derivative Noises
+//
+
+vec3 Value2D_Deriv( vec2 P )
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec2 Pf = P - Pi;
+
+	//	calculate the hash.
+	vec4 hash = FAST32_hash_2D( Pi );
+
+	//	blend result and return
+	vec4 blend = Interpolation_C2_InterpAndDeriv( Pf );
+	vec4 res0 = mix( hash.xyxz, hash.zwyw, blend.yyxx );
+	return vec3( res0.x, 0.0.xx ) + ( res0.yyw - res0.xxz ) * blend.xzw;
+}
+
+
+vec4 Value3D_Deriv( vec3 P )
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_lowz, hash_highz;
+	FAST32_hash_3D( Pi, hash_lowz, hash_highz );
+
+	//	blend the results and return
+	vec3 blend = Interpolation_C2( Pf );
+	vec4 res0 = mix( hash_lowz, hash_highz, blend.z );
+	vec4 res1 = mix( res0.xyxz, res0.zwyw, blend.yyxx );
+	vec4 res3 = mix( vec4( hash_lowz.xy, hash_highz.xy ), vec4( hash_lowz.zw, hash_highz.zw ), blend.y );
+	vec2 res4 = mix( res3.xz, res3.yw, blend.x );
+	return vec4( res1.x, 0.0.xxx ) + ( vec4( res1.yyw, res4.y ) - vec4( res1.xxz, res4.x ) ) * vec4( blend.x, Interpolation_C2_Deriv( Pf ) );
+}
+
+vec3 SimplexPerlin2D_Deriv( vec2 P )
+{
+	//	simplex math constants
+	const float SKEWFACTOR = 0.36602540378443864676372317075294;			// 0.5*(sqrt(3.0)-1.0)
+	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
+	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR );		//	vertex info for simplex triangle
+
+	//	establish our grid cell.
+	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
+	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	establish vectors to the 3 corners of our simplex triangle
+	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
+	vec4 v1pos_v1hash = (v0.x < v0.y) ? vec4(SIMPLEX_POINTS.xy, hash_x.y, hash_y.y) : vec4(SIMPLEX_POINTS.yx, hash_x.z, hash_y.z);
+	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
+
+	//	calculate the dotproduct of our 3 corner vectors with 3 random normalized vectors
+	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999.xxx;
+	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999.xxx;
+	vec3 norm = inversesqrt( grad_x * grad_x + grad_y * grad_y );
+	grad_x *= norm;
+	grad_y *= norm;
+	vec3 grad_results = grad_x * vec3( v0.x, v12.xz ) + grad_y * vec3( v0.y, v12.yw );
+
+	//	evaluate the surflet
+	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
+	m = max(0.5.xxx - m, 0.0.xxx);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
+	vec3 m2 = m*m;
+	vec3 m4 = m2*m2;
+
+	//	calc the deriv
+	vec3 temp = 8.0 * m2 * m * grad_results;
+	float xderiv = dot( temp, vec3( v0.x, v12.xz ) ) - dot( m4, grad_x );
+	float yderiv = dot( temp, vec3( v0.y, v12.yw ) ) - dot( m4, grad_y );
+
+	const float FINAL_NORMALIZATION = 99.204310604478759765467803137703;	//	scales the final result to a strict 1.0->-1.0 range
+
+	//	sum the surflets and return all results combined in a vec3
+	return vec3( dot( m4, grad_results ), xderiv, yderiv ) * FINAL_NORMALIZATION;
+}
+
+vec4 SimplexPerlin3D_Deriv(vec3 P)
+{
+	//	calculate the simplex vector and index math
+	vec3 Pi;
+	vec3 Pi_1;
+	vec3 Pi_2;
+	vec4 v1234_x;
+	vec4 v1234_y;
+	vec4 v1234_z;
+	Simplex3D_GetCornerVectors( P, Pi, Pi_1, Pi_2, v1234_x, v1234_y, v1234_z );
+
+	//	generate the random vectors
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_0;
+	vec4 hash_1;
+	vec4 hash_2;
+	FAST32_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
+	//SGPP_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
+	hash_0 -= 0.49999.xxxx;
+	hash_1 -= 0.49999.xxxx;
+	hash_2 -= 0.49999.xxxx;
+
+	//	normalize random gradient vectors
+	vec4 norm = inversesqrt( hash_0 * hash_0 + hash_1 * hash_1 + hash_2 * hash_2 );
+	hash_0 *= norm;
+	hash_1 *= norm;
+	hash_2 *= norm;
+
+	//	evaluate gradients
+	vec4 grad_results = hash_0 * v1234_x + hash_1 * v1234_y + hash_2 * v1234_z;
+
+	//	evaluate the surflet f(x)=(0.5-x*x)^3
+	vec4 m = v1234_x * v1234_x + v1234_y * v1234_y + v1234_z * v1234_z;
+	m = max(0.5.xxxx - m, 0.0.xxxx);		//	The 0.5 here is SIMPLEX_PYRAMID_HEIGHT^2
+	vec4 m2 = m*m;
+	vec4 m3 = m*m2;
+
+	//	calc the deriv
+	vec4 temp = -6.0 * m2 * grad_results;
+	float xderiv = dot( temp, v1234_x ) + dot( m3, hash_0 );
+	float yderiv = dot( temp, v1234_y ) + dot( m3, hash_1 );
+	float zderiv = dot( temp, v1234_z ) + dot( m3, hash_2 );
+
+	const float FINAL_NORMALIZATION = 37.837217149891986479046334729594;	//	scales the final result to a strict 1.0->-1.0 range
+
+	//	sum with the surflet and return
+	return vec4( dot( m3, grad_results ), xderiv, yderiv, zderiv ) * FINAL_NORMALIZATION;
+}
+
+
+vec3 Hermite2D_Deriv( vec2 P )
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec2 Pf = P - Pi;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_gradx, hash_grady;
+	FAST32_hash_2D( Pi, hash_gradx, hash_grady );
+
+	//	scale the hash values
+	hash_gradx = ( hash_gradx - 0.49999);
+	hash_grady = ( hash_grady - 0.49999);
+
+#if 0
+	//	normalize gradients
+	vec4 norm = inversesqrt( hash_gradx * hash_gradx + hash_grady * hash_grady );
+	hash_gradx *= norm;
+	hash_grady *= norm;
+	const float FINAL_NORM_VAL = 2.2627416997969520780827019587355;
+#else
+	//	unnormalized gradients
+	const float FINAL_NORM_VAL = 3.2;  // 3.2 = 1.0 / ( 0.5 * 0.3125 * 2.0 )
+#endif
+
+	vec4 qh_results_x = QuinticHermite( Pf.y, hash_gradx.xy, hash_gradx.zw, hash_grady.xy, hash_grady.zw );
+	vec4 qh_results_y = QuinticHermite( Pf.x, hash_grady.xz, hash_grady.yw, hash_gradx.xz, hash_gradx.yw );
+	float finalpos = QuinticHermite( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
+	float deriv_x = QuinticHermiteDeriv( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
+	float deriv_y = QuinticHermiteDeriv( Pf.y, qh_results_y.x, qh_results_y.y, qh_results_y.z, qh_results_y.w );
+	return vec3( finalpos, deriv_x, deriv_y ) * FINAL_NORM_VAL;
+}
+
+vec4 Hermite3D_Deriv( vec3 P )
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_gradx0, hash_grady0, hash_gradz0, hash_gradx1, hash_grady1, hash_gradz1;
+	FAST32_hash_3D( Pi, hash_gradx0, hash_grady0, hash_gradz0, hash_gradx1, hash_grady1, hash_gradz1 );
+
+	//	scale the hash values
+	hash_gradx0 = ( hash_gradx0 - 0.49999);
+	hash_grady0 = ( hash_grady0 - 0.49999);
+	hash_gradz0 = ( hash_gradz0 - 0.49999);
+	hash_gradx1 = ( hash_gradx1 - 0.49999);
+	hash_grady1 = ( hash_grady1 - 0.49999);
+	hash_gradz1 = ( hash_gradz1 - 0.49999);
+
+#if 0
+	//	normalize gradients
+	vec4 norm0 = inversesqrt( hash_gradx0 * hash_gradx0 + hash_grady0 * hash_grady0 + hash_gradz0 * hash_gradz0 );
+	hash_gradx0 *= norm0;
+	hash_grady0 *= norm0;
+	hash_gradz0 *= norm0;
+	vec4 norm1 = inversesqrt( hash_gradx1 * hash_gradx1 + hash_grady1 * hash_grady1 + hash_gradz1 * hash_gradz1 );
+	hash_gradx1 *= norm1;
+	hash_grady1 *= norm1;
+	hash_gradz1 *= norm1;
+	const float FINAL_NORM_VAL = 1.8475208614068024464292760976063;
+#else
+	//	unnormalized gradients
+	const float FINAL_NORM_VAL = (1.0/0.46875);  // = 1.0 / ( 0.5 * 0.3125 * 3.0 )
+#endif
+
+	//	drop things from three dimensions to two
+	vec4 ival_results_z, igrad_results_x_z, igrad_results_y_z;
+	QuinticHermite( Pf.z, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results_z, igrad_results_x_z, igrad_results_y_z );
+
+	vec4 ival_results_y, igrad_results_x_y, igrad_results_z_y;
+	QuinticHermite( Pf.y, 	vec4( hash_gradx0.xy, hash_gradx1.xy ), vec4( hash_gradx0.zw, hash_gradx1.zw ),
+							vec4( hash_gradz0.xy, hash_gradz1.xy ), vec4( hash_gradz0.zw, hash_gradz1.zw ),
+							vec4( hash_grady0.xy, hash_grady1.xy ), vec4( hash_grady0.zw, hash_grady1.zw ),
+							ival_results_y, igrad_results_x_y, igrad_results_z_y );
+
+	//	establish a single hermite curve for each dimension
+	vec4 qh_results_x = QuinticHermite( Pf.y, vec4(ival_results_z.xy, igrad_results_x_z.xy), vec4(ival_results_z.zw, igrad_results_x_z.zw), vec4( igrad_results_y_z.xy, 0.0.xx ), vec4( igrad_results_y_z.zw, 0.0.xx ) );
+	vec4 qh_results_y = QuinticHermite( Pf.x, vec4(ival_results_z.xz, igrad_results_y_z.xz), vec4(ival_results_z.yw, igrad_results_y_z.yw), vec4( igrad_results_x_z.xz, 0.0.xx ), vec4( igrad_results_x_z.yw, 0.0.xx ) );
+	vec4 qh_results_z = QuinticHermite( Pf.x, vec4(ival_results_y.xz, igrad_results_z_y.xz), vec4(ival_results_y.yw, igrad_results_z_y.yw), vec4( igrad_results_x_y.xz, 0.0.xx ), vec4( igrad_results_x_y.yw, 0.0.xx ) );
+
+	//	for each hermite curve calculate the derivative
+	float deriv_x = QuinticHermiteDeriv( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
+	float deriv_y = QuinticHermiteDeriv( Pf.y, qh_results_y.x, qh_results_y.y, qh_results_y.z, qh_results_y.w );
+	float deriv_z = QuinticHermiteDeriv( Pf.z, qh_results_z.x, qh_results_z.y, qh_results_z.z, qh_results_z.w );
+
+	//	and also the final noise value off any one of them
+	float finalpos = QuinticHermite( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
+
+	//	normalize and return results! :)
+	return vec4( finalpos, deriv_x, deriv_y, deriv_z ) * FINAL_NORM_VAL;
 }
