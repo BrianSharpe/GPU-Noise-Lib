@@ -500,7 +500,21 @@ float Perlin2D( vec2 P )
 	vec4 grad_x = hash_x - 0.49999.xxxx;
 	vec4 grad_y = hash_y - 0.49999.xxxx;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
+
+#if 1
+	//	Classic Perlin Interpolation
 	grad_results *= 1.4142135623730950488016887242097.xxxx;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.5)
+	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
+	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
+	return mix( res0.x, res0.y, blend.x );
+#else
+	//	Classic Perlin Surflet
+	//	http://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/
+	grad_results *= 2.3703703703703703703703703703704.xxxx;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
+	vec4 vecs_len_sq = Pf_Pfmin1 * Pf_Pfmin1;
+	vecs_len_sq = vecs_len_sq.xzxz + vecs_len_sq.yyww;
+	return dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq ) ), grad_results );
+#endif
 
 #else
 	//
@@ -525,12 +539,13 @@ float Perlin2D( vec2 P )
 	hash -= 0.5.xxxx;
 	vec4 grad_results = Pf_Pfmin1.xzxz * sign( hash ) + Pf_Pfmin1.yyww * sign( abs( hash ) - 0.25.xxxx );
 
-#endif
-
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
 	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
 	return mix( res0.x, res0.y, blend.x );
+
+#endif
+
 }
 
 //
@@ -567,13 +582,25 @@ float Perlin3D( vec3 P )
 	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 
-	//	blend the gradients and return
+#if 1
+	//	Classic Perlin Interpolation
 	vec3 blend = Interpolation_C2( Pf );
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
 	float final = mix( res1.x, res1.y, blend.x );
 	final *= 1.1547005383792515290182975610039;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.75)
 	return final;
+#else
+	//	Classic Perlin Surflet
+	//	http://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/
+	Pf *= Pf;
+	Pf_min1 *= Pf_min1;
+	vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );
+	float final = dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );
+	final *= 2.3703703703703703703703703703704.xxxx;	//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
+	return final;
+#endif
+
 #else
 	//
 	//	improved noise.
