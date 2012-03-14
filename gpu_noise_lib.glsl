@@ -597,7 +597,7 @@ float Perlin3D( vec3 P )
 	Pf_min1 *= Pf_min1;
 	vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );
 	float final = dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );
-	final *= 2.3703703703703703703703703703704.xxxx;	//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
+	final *= 2.3703703703703703703703703703704;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
 	return final;
 #endif
 
@@ -1738,6 +1738,118 @@ vec4 Value3D_Deriv( vec3 P )
 }
 
 //
+//	PerlinSurflet2D_Deriv
+//	Perlin Surflet 2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
+vec3 PerlinSurflet2D_Deriv( vec2 P )
+{
+	//	establish our grid cell and unit position
+	vec2 Pi = floor(P);
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hash_x, hash_y;
+	FAST32_hash_2D( Pi, hash_x, hash_y );
+	//SGPP_hash_2D( Pi, hash_x, hash_y );
+
+	//	calculate the gradient results
+	vec4 grad_x = hash_x - 0.49999.xxxx;
+	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 norm = inversesqrt( grad_x * grad_x + grad_y * grad_y );
+	grad_x *= norm;
+	grad_y *= norm;
+	vec4 grad_results = grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww;
+
+	//	eval the surflet
+	vec4 m = Pf_Pfmin1 * Pf_Pfmin1;
+	m = m.xzxz + m.yyww;
+	m = max(1.0.xxxx - m, 0.0.xxxx);
+	vec4 m2 = m*m;
+	vec4 m3 = m*m2;
+
+	//	calc the deriv
+	vec4 temp = -6.0 * m2 * grad_results;
+	float xderiv = dot( temp, Pf_Pfmin1.xzxz ) + dot( m3, grad_x );
+	float yderiv = dot( temp, Pf_Pfmin1.yyww ) + dot( m3, grad_y );
+
+	//	sum the surflets and return all results combined in a vec3
+	const float FINAL_NORMALIZATION = 2.3703703703703703703703703703704;		//	scales the final result to a strict 1.0->-1.0 range
+	return vec3( dot( m3, grad_results ), xderiv, yderiv ) * FINAL_NORMALIZATION;
+}
+
+
+//
+//	PerlinSurflet3D_Deriv
+//	Perlin Surflet 3D noise with derivatives
+//	returns vec4( value, xderiv, yderiv, zderiv )
+//
+vec4 PerlinSurflet3D_Deriv( vec3 P )
+{
+	//	establish our grid cell and unit position
+	vec3 Pi = floor(P);
+	vec3 Pf = P - Pi;
+	vec3 Pf_min1 = Pf - 1.0;
+
+	//	calculate the hash.
+	//	( various hashing methods listed in order of speed )
+	vec4 hashx0, hashy0, hashz0, hashx1, hashy1, hashz1;
+	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
+	//SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
+
+	//	calculate the gradients
+	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
+	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
+	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
+	vec4 norm_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 );
+	grad_x0 *= norm_0;
+	grad_y0 *= norm_0;
+	grad_z0 *= norm_0;
+	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
+	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
+	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 norm_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 );
+	grad_x1 *= norm_1;
+	grad_y1 *= norm_1;
+	grad_z1 *= norm_1;
+	vec4 grad_results_0 = vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0;
+	vec4 grad_results_1 = vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1;
+
+	//	get lengths in the x+y plane
+	vec3 Pf_sq = Pf*Pf;
+	vec3 Pf_min1_sq = Pf_min1*Pf_min1;
+	vec4 vecs_len_sq = vec2( Pf_sq.x, Pf_min1_sq.x ).xyxy + vec2( Pf_sq.y, Pf_min1_sq.y ).xxyy;
+
+	//	evaluate the surflet
+	vec4 m_0 = vecs_len_sq + Pf_sq.zzzz;
+	m_0 = max(1.0.xxxx - m_0, 0.0.xxxx);
+	vec4 m2_0 = m_0*m_0;
+	vec4 m3_0 = m_0*m2_0;
+
+	vec4 m_1 = vecs_len_sq + Pf_min1_sq.zzzz;
+	m_1 = max(1.0.xxxx - m_1, 0.0.xxxx);
+	vec4 m2_1 = m_1*m_1;
+	vec4 m3_1 = m_1*m2_1;
+
+	//	calc the deriv
+	vec4 temp_0 = -6.0 * m2_0 * grad_results_0;
+	float xderiv_0 = dot( temp_0, vec2( Pf.x, Pf_min1.x ).xyxy ) + dot( m3_0, grad_x0 );
+	float yderiv_0 = dot( temp_0, vec2( Pf.y, Pf_min1.y ).xxyy ) + dot( m3_0, grad_y0 );
+	float zderiv_0 = dot( temp_0, Pf.zzzz ) + dot( m3_0, grad_z0 );
+
+	vec4 temp_1 = -6.0 * m2_1 * grad_results_1;
+	float xderiv_1 = dot( temp_1, vec2( Pf.x, Pf_min1.x ).xyxy ) + dot( m3_1, grad_x1 );
+	float yderiv_1 = dot( temp_1, vec2( Pf.y, Pf_min1.y ).xxyy ) + dot( m3_1, grad_y1 );
+	float zderiv_1 = dot( temp_1, Pf_min1.zzzz ) + dot( m3_1, grad_z1 );
+
+	const float FINAL_NORMALIZATION = 2.3703703703703703703703703703704;	//	scales the final result to a strict 1.0->-1.0 range
+	return vec4( dot( m3_0, grad_results_0 ) + dot( m3_1, grad_results_1 ) , vec3(xderiv_0,yderiv_0,zderiv_0) + vec3(xderiv_1,yderiv_1,zderiv_1) ) * FINAL_NORMALIZATION;
+}
+
+
+
+//
 //	SimplexPerlin2D_Deriv
 //	SimplexPerlin2D noise with derivatives
 //	returns vec3( value, xderiv, yderiv )
@@ -1877,7 +1989,7 @@ vec3 Hermite2D_Deriv( vec2 P )
 #endif
 
 	//
-	//	NOTE:  Some of this stuff can be optimized further.
+	//	NOTE:  This stuff can be optimized further.
 	//	But it also appears the compiler is doing a lot of that automatically for us anyway
 	//
 
@@ -1930,7 +2042,7 @@ vec4 Hermite3D_Deriv( vec3 P )
 #endif
 
 	//
-	//	NOTE:  Some of this stuff can be optimized further.
+	//	NOTE:  This stuff can be optimized further.
 	//	But it also appears the compiler is doing a lot of that automatically for us anyway
 	//
 
