@@ -25,6 +25,7 @@
 //	5) 4D noises
 //
 
+
 //
 //	Permutation polynomial idea is from Stefan Gustavson's and Ian McEwan's work at...
 //	http://github.com/ashima/webgl-noise
@@ -39,13 +40,13 @@ vec4 SGPP_resolve(vec4 x) { return fract( x * ( 7.0 / 288.0 ) ); }
 vec4 SGPP_hash_2D( vec2 gridcell )		//	generates a random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
-	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
+	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0 ) );
 	return SGPP_resolve( SGPP_permute( SGPP_permute( hash_coord.xzxz ) + hash_coord.yyww ) );
 }
 void SGPP_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
-	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
+	vec4 hash_coord = SGPP_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0 ) );
 	hash_0 = SGPP_permute( SGPP_permute( hash_coord.xzxz ) + hash_coord.yyww );
 	hash_1 = SGPP_resolve( SGPP_permute( hash_0 ) );
 	hash_0 = SGPP_resolve( hash_0 );
@@ -54,7 +55,7 @@ void SGPP_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )		//	
 {
 	//    gridcell is assumed to be an integer coordinate
 	gridcell = SGPP_coord_prepare( gridcell );
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, 287.5.xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( 287.5 ) ) * ( gridcell + 1.0 );
 	highz_hash = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
 	lowz_hash = SGPP_resolve( SGPP_permute( highz_hash + gridcell.zzzz ) );
 	highz_hash = SGPP_resolve( SGPP_permute( highz_hash + gridcell_inc1.zzzz ) );
@@ -67,9 +68,9 @@ void SGPP_hash_3D( 	vec3 gridcell,
 					out vec4 hash_2	)		//	generates 3 random numbers for each of the 4 3D cell corners.  cell corners:  v0=0,0,0  v3=1,1,1  the other two are user definable
 {
 	vec3 coords0 = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / 289.0 )) * 289.0;
-	vec3 coords3 = mix( coords0 + 1.0.xxx, 0.0.xxx, greaterThan( coords0, 287.5.xxx ) );
-	vec3 coords1 = mix( coords3, coords0, lessThan( v1_mask, 0.5.xxx ) );
-	vec3 coords2 = mix( coords3, coords0, lessThan( v2_mask, 0.5.xxx ) );
+	vec3 coords3 = step( coords0, vec3( 287.5 ) ) * ( coords0 + 1.0 );
+	vec3 coords1 = mix( coords0, coords3, v1_mask );
+	vec3 coords2 = mix( coords0, coords3, v2_mask );
 	hash_2 = SGPP_permute( SGPP_permute( SGPP_permute( vec4( coords0.x, coords1.x, coords2.x, coords3.x ) ) + vec4( coords0.y, coords1.y, coords2.y, coords3.y ) ) + vec4( coords0.z, coords1.z, coords2.z, coords3.z ) );
 	hash_0 = SGPP_resolve( hash_2  );
 	hash_1 = SGPP_resolve( hash_2 = SGPP_permute( hash_2 ) );
@@ -85,7 +86,7 @@ void SGPP_hash_3D( 	vec3 gridcell,
 {
 	//    gridcell is assumed to be an integer coordinate
 	gridcell = SGPP_coord_prepare( gridcell );
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, 287.5.xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( 287.5 ) ) * ( gridcell + 1.0 );
 	highz_hash_2 = SGPP_permute( SGPP_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy ) + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
 	lowz_hash_0 = SGPP_resolve( lowz_hash_2 = SGPP_permute( highz_hash_2 + gridcell.zzzz ) );
 	highz_hash_0 = SGPP_resolve( highz_hash_2 = SGPP_permute( highz_hash_2 + gridcell_inc1.zzzz ) );
@@ -109,14 +110,14 @@ vec4 BBS_permute_and_resolve(vec4 x) { return fract( x * x * ( 1.0 / 61.0 ) ); }
 vec4 BBS_hash_2D( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
-	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
+	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0 ) );
 	vec4 p = BBS_permute( hash_coord.xzxz /* * 7.0 */ ); // * 7.0 will increase variance close to origin
 	return BBS_permute_and_resolve( p + hash_coord.yyww );
 }
 vec4 BBS_hash_hq_2D( vec2 gridcell )	//	generates a hq random number for each of the 4 cell corners
 {
 	//    gridcell is assumed to be an integer coordinate
-	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0.xx ) );
+	vec4 hash_coord = BBS_coord_prepare( vec4( gridcell.xy, gridcell.xy + 1.0 ) );
 	vec4 p = BBS_permute( hash_coord.xzxz /* * 7.0 */ );  // * 7.0 will increase variance close to origin
 	p = BBS_permute( p + hash_coord.yyww );
 	return BBS_permute_and_resolve( p + hash_coord.xzxz );
@@ -125,10 +126,10 @@ void BBS_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )		//	g
 {
 	//	gridcell is assumed to be an integer coordinate
 
-	//	was having precision issues here with 61.0.  60.0 fixes it.  need to test on other cards.
+	//	was having precision issues here with 61.0  60.0 fixes it.  need to test on other cards.
 	const float DOMAIN = 60.0;
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	vec4 p = BBS_permute( vec2( gridcell.x, gridcell_inc1.x ).xyxy /* * 7.0 */ );  // * 7.0 will increase variance close to origin
 	p = BBS_permute( p + vec2( gridcell.y, gridcell_inc1.y ).xxyy );
@@ -154,11 +155,11 @@ vec4 FAST32_hash_2D( vec2 gridcell )	//	generates a random number for each of th
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
 	const float DOMAIN = 71.0;
 	const float SOMELARGEFLOAT = 951.135664;
-	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0 );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;	//	truncate the domain
 	P += OFFSET.xyxy;								//	offset to interesting part of the noise
 	P *= P;											//	calculate and return the hash
-	return fract( P.xzxz * P.yyww * ( 1.0 / SOMELARGEFLOAT.x ).xxxx );
+	return fract( P.xzxz * P.yyww * ( 1.0 / SOMELARGEFLOAT ) );
 }
 void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	generates 2 random numbers for each of the 4 cell corners
 {
@@ -166,13 +167,13 @@ void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )	//	genera
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
 	const float DOMAIN = 71.0;
 	const vec2 SOMELARGEFLOATS = vec2( 951.135664, 642.949883 );
-	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0 );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
 	P += OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
-	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
+	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ) );
+	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ) );
 }
 void FAST32_hash_2D( 	vec2 gridcell,
 						out vec4 hash_0,
@@ -183,14 +184,14 @@ void FAST32_hash_2D( 	vec2 gridcell,
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
 	const float DOMAIN = 71.0;
 	const vec3 SOMELARGEFLOATS = vec3( 951.135664, 642.949883, 803.202459 );
-	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0.xx );
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0 );
 	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
 	P += OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ).xxxx );
-	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ).xxxx );
-	hash_2 = fract( P * ( 1.0 / SOMELARGEFLOATS.z ).xxxx );
+	hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ) );
+	hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ) );
+	hash_2 = fract( P * ( 1.0 / SOMELARGEFLOATS.z ) );
 }
 vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random numbers for the single given cell point
 {
@@ -198,10 +199,10 @@ vec4 FAST32_hash_2D_Cell( vec2 gridcell )	//	generates 4 different random number
 	const vec2 OFFSET = vec2( 26.0, 161.0 );
 	const float DOMAIN = 71.0;
 	const vec4 SOMELARGEFLOATS = vec4( 951.135664, 642.949883, 803.202459, 986.973274 );
-	vec2 P = gridcell - floor(gridcell * ( 1.0 / DOMAIN.xx )) * DOMAIN.xx;
+	vec2 P = gridcell - floor(gridcell * ( 1.0 / DOMAIN )) * DOMAIN;
 	P += OFFSET.xy;
 	P *= P;
-	return fract( (P.x * P.y).xxxx * ( 1.0 / SOMELARGEFLOATS.xyzw ) );
+	return fract( (P.x * P.y) * ( 1.0 / SOMELARGEFLOATS.xyzw ) );
 }
 vec4 FAST32_hash_3D_Cell( vec3 gridcell )	//	generates 4 different random numbers for the single given cell point
 {
@@ -218,7 +219,7 @@ vec4 FAST32_hash_3D_Cell( vec3 gridcell )	//	generates 4 different random number
 	gridcell.xyz = gridcell - floor(gridcell * ( 1.0 / DOMAIN )) * DOMAIN;
 	gridcell.xy += OFFSET.xy;
 	gridcell.xy *= gridcell.xy;
-	return fract( ( gridcell.x * gridcell.y ).xxxx * ( 1.0.xxxx / ( SOMELARGEFLOATS + gridcell.zzzz * ZINC ) ) );
+	return fract( ( gridcell.x * gridcell.y ) * ( 1.0 / ( SOMELARGEFLOATS + gridcell.zzzz * ZINC ) ) );
 }
 void FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )	//	generates a random number for each of the 8 cell corners
 {
@@ -233,13 +234,13 @@ void FAST32_hash_3D( vec3 gridcell, out vec4 lowz_hash, out vec4 highz_hash )	//
 
 	//	truncate the domain
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	//	calculate the noise
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	highz_hash.xy = vec2( 1.0.xx / ( SOMELARGEFLOAT.xx + vec2( gridcell.z, gridcell_inc1.z ) * ZINC.xx ) );
+	highz_hash.xy = vec2( 1.0 / ( SOMELARGEFLOAT + vec2( gridcell.z, gridcell_inc1.z ) * ZINC ) );
 	lowz_hash = fract( P * highz_hash.xxxx );
 	highz_hash = fract( P * highz_hash.yyyy );
 }
@@ -261,21 +262,21 @@ void FAST32_hash_3D( 	vec3 gridcell,
 
 	//	truncate the domain
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	//	compute x*x*y*y for the 4 corners
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
-	vec4 V1xy_V2xy = mix( P.zwzw, P.xyxy, lessThan( vec4( v1_mask.xy, v2_mask.xy ), 0.5.xxxx ) );		//	apply mask for v1 and v2
+	vec4 V1xy_V2xy = mix( P.xyxy, P.zwzw, vec4( v1_mask.xy, v2_mask.xy ) );		//	apply mask for v1 and v2
 	P = vec4( P.x, V1xy_V2xy.xz, P.z ) * vec4( P.y, V1xy_V2xy.yw, P.w );
 
 	//	get the lowz and highz mods
-	vec3 lowz_mods = vec3( 1.0.xxx / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );
-	vec3 highz_mods = vec3( 1.0.xxx / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );
+	vec3 lowz_mods = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );
+	vec3 highz_mods = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );
 
 	//	apply mask for v1 and v2 mod values
-	v1_mask = mix( highz_mods, lowz_mods, lessThan( v1_mask.zzz, 0.5.xxx ) );
-	v2_mask = mix( highz_mods, lowz_mods, lessThan( v2_mask.zzz, 0.5.xxx ) );
+    v1_mask = ( v1_mask.z < 0.5 ) ? lowz_mods : highz_mods;
+    v2_mask = ( v2_mask.z < 0.5 ) ? lowz_mods : highz_mods;
 
 	//	compute the final hash
 	hash_0 = fract( P * vec4( lowz_mods.x, v1_mask.x, v2_mask.x, highz_mods.x ) );
@@ -297,17 +298,17 @@ vec4 FAST32_hash_3D( 	vec3 gridcell,
 
 	//	truncate the domain
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	//	compute x*x*y*y for the 4 corners
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
-	vec4 V1xy_V2xy = mix( P.zwzw, P.xyxy, lessThan( vec4( v1_mask.xy, v2_mask.xy ), 0.5.xxxx ) );		//	apply mask for v1 and v2
+	vec4 V1xy_V2xy = mix( P.xyxy, P.zwzw, vec4( v1_mask.xy, v2_mask.xy ) );		//	apply mask for v1 and v2
 	P = vec4( P.x, V1xy_V2xy.xz, P.z ) * vec4( P.y, V1xy_V2xy.yw, P.w );
 
 	//	get the z mod vals
-	vec2 V1z_V2z = mix( gridcell_inc1.zz, gridcell.zz, lessThan( vec2( v1_mask.z, v2_mask.z ), 0.5.xx ) );
-	vec4 mod_vals = vec4( 1.0.xxxx / ( SOMELARGEFLOAT.xxxx + vec4( gridcell.z, V1z_V2z, gridcell_inc1.z ) * ZINC.xxxx ) );
+	vec2 V1z_V2z = vec2( v1_mask.z < 0.5 ? gridcell.z : gridcell_inc1.z, v2_mask.z < 0.5 ? gridcell.z : gridcell_inc1.z );
+	vec4 mod_vals = vec4( 1.0 / ( SOMELARGEFLOAT + vec4( gridcell.z, V1z_V2z, gridcell_inc1.z ) * ZINC ) );
 
 	//	compute the final hash
 	return fract( P * mod_vals );
@@ -331,14 +332,14 @@ void FAST32_hash_3D( 	vec3 gridcell,
 
 	//	truncate the domain
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	//	calculate the noise
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	lowz_hash_2.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzx + vec2( gridcell.z, gridcell_inc1.z ).xxxy * ZINC.xyzx ) );
-	highz_hash_2.xy = vec2( 1.0.xx / ( SOMELARGEFLOATS.yz + gridcell_inc1.zz * ZINC.yz ) );
+	lowz_hash_2.xyzw = vec4( 1.0 / ( SOMELARGEFLOATS.xyzx + vec2( gridcell.z, gridcell_inc1.z ).xxxy * ZINC.xyzx ) );
+	highz_hash_2.xy = vec2( 1.0 / ( SOMELARGEFLOATS.yz + gridcell_inc1.zz * ZINC.yz ) );
 	lowz_hash_0 = fract( P * lowz_hash_2.xxxx );
 	highz_hash_0 = fract( P * lowz_hash_2.wwww );
 	lowz_hash_1 = fract( P * lowz_hash_2.yyyy );
@@ -367,14 +368,14 @@ void FAST32_hash_3D( 	vec3 gridcell,
 
 	//	truncate the domain
 	gridcell.xyz = gridcell.xyz - floor(gridcell.xyz * ( 1.0 / DOMAIN )) * DOMAIN;
-	vec3 gridcell_inc1 = mix( gridcell + 1.0.xxx, 0.0.xxx, greaterThan( gridcell, ( DOMAIN - 1.5 ).xxx ) );
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
 
 	//	calculate the noise
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	lowz_hash_3.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzw + gridcell.zzzz * ZINC.xyzw ) );
-	highz_hash_3.xyzw = vec4( 1.0.xxxx / ( SOMELARGEFLOATS.xyzw + gridcell_inc1.zzzz * ZINC.xyzw ) );
+	lowz_hash_3.xyzw = vec4( 1.0 / ( SOMELARGEFLOATS.xyzw + gridcell.zzzz * ZINC.xyzw ) );
+	highz_hash_3.xyzw = vec4( 1.0 / ( SOMELARGEFLOATS.xyzw + gridcell_inc1.zzzz * ZINC.xyzw ) );
 	lowz_hash_0 = fract( P * lowz_hash_3.xxxx );
 	highz_hash_0 = fract( P * highz_hash_3.xxxx );
 	lowz_hash_1 = fract( P * lowz_hash_3.yyyy );
@@ -400,7 +401,7 @@ float Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 1
 vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
-vec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec4( 6.0.xx, 0.0.xx ) + vec4( -15.0.xx, 30.0.xx ) ) + vec4( 10.0.xx, -60.0.xx ) ) + vec4( 0.0.xx, 30.0.xx ) ); }
+vec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec4( 6.0, 6.0, 0.0, 0.0 ) + vec4( -15.0, -15.0, 30.0, 30.0 ) ) + vec4( 10.0, 10.0, -60.0, -60.0 ) ) + vec4( 0.0, 0.0, 30.0, 30.0 ) ); }
 vec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }
 
 float Interpolation_C2_Fast( float x ) { float x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }   //  7x^3-7x^4+x^7   ( Faster than Perlin Quintic.  Not quite as good shape. )
@@ -482,7 +483,7 @@ float Perlin2D( vec2 P )
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
-	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
 
 #if 1
 	//
@@ -497,23 +498,23 @@ float Perlin2D( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	calculate the gradient results
-	vec4 grad_x = hash_x - 0.49999.xxxx;
-	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_x = hash_x - 0.49999;
+	vec4 grad_y = hash_y - 0.49999;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 
 #if 1
 	//	Classic Perlin Interpolation
-	grad_results *= 1.4142135623730950488016887242097.xxxx;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.5)
+	grad_results *= 1.4142135623730950488016887242097;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.5)
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
 	vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
 	return mix( res0.x, res0.y, blend.x );
 #else
 	//	Classic Perlin Surflet
 	//	http://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/
-	grad_results *= 2.3703703703703703703703703703704.xxxx;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
+	grad_results *= 2.3703703703703703703703703703704;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
 	vec4 vecs_len_sq = Pf_Pfmin1 * Pf_Pfmin1;
 	vecs_len_sq = vecs_len_sq.xzxz + vecs_len_sq.yyww;
-	return dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq ) ), grad_results );
+	return dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq ) ), grad_results );
 #endif
 
 #else
@@ -536,8 +537,8 @@ float Perlin2D( vec2 P )
 	//	NOTE:  diagonals give us a nice strict -1.0->1.0 range without additional scaling
 	//	[1.0,1.0] [-1.0,1.0] [1.0,-1.0] [-1.0,-1.0]
 	//
-	hash -= 0.5.xxxx;
-	vec4 grad_results = Pf_Pfmin1.xzxz * sign( hash ) + Pf_Pfmin1.yyww * sign( abs( hash ) - 0.25.xxxx );
+	hash -= 0.5;
+	vec4 grad_results = Pf_Pfmin1.xzxz * sign( hash ) + Pf_Pfmin1.yyww * sign( abs( hash ) - 0.25 );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
@@ -573,12 +574,12 @@ float Perlin3D( vec3 P )
 	//SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
 
 	//	calculate the gradients
-	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
-	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
-	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
-	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
-	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
-	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_x0 = hashx0 - 0.49999;
+	vec4 grad_y0 = hashy0 - 0.49999;
+	vec4 grad_z0 = hashz0 - 0.49999;
+	vec4 grad_x1 = hashx1 - 0.49999;
+	vec4 grad_y1 = hashy1 - 0.49999;
+	vec4 grad_z1 = hashz1 - 0.49999;
 	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 
@@ -596,7 +597,7 @@ float Perlin3D( vec3 P )
 	Pf *= Pf;
 	Pf_min1 *= Pf_min1;
 	vec4 vecs_len_sq = vec4( Pf.x, Pf_min1.x, Pf.x, Pf_min1.x ) + vec4( Pf.yy, Pf_min1.yy );
-	float final = dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( 1.0.xxxx, vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );
+	float final = dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf.zzzz ) ), grad_results_0 ) + dot( Falloff_Xsq_C2( min( vec4( 1.0 ), vecs_len_sq + Pf_min1.zzzz ) ), grad_results_1 );
 	final *= 2.3703703703703703703703703703704;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/cube(0.75)
 	return final;
 #endif
@@ -614,50 +615,24 @@ float Perlin3D( vec3 P )
 	//BBS_hash_3D( Pi, hash_lowz, hash_highz );
 	//SGPP_hash_3D( Pi, hash_lowz, hash_highz );
 
-#if 0
-	//
-	//	this will implement Ken Perlins "improved" classic noise using the 12 mid-edge gradient points.
-	//	NOTE:  mid-edge gradients give us a nice strict -1.0->1.0 range without additional scaling
-	//	[1,1,0] [-1,1,0] [1,-1,0] [-1,-1,0]
-	//	[1,0,1] [-1,0,1] [1,0,-1] [-1,0,-1]
-	//	[0,1,1] [0,-1,1] [0,1,-1] [0,-1,-1]
-	//
-	hash_lowz *= 3.0;
-	vec4 grad_results_0_0 = mix( vec2( Pf.y, Pf_min1.y ).xxyy, vec2( Pf.x, Pf_min1.x ).xyxy, lessThan( hash_lowz, 2.0.xxxx ) );
-	vec4 grad_results_0_1 = mix( Pf.zzzz, vec2( Pf.y, Pf_min1.y ).xxyy, lessThan( hash_lowz, 1.0.xxxx ) );
-	hash_lowz = fract( hash_lowz ) - 0.5;
-	vec4 grad_results_0 = grad_results_0_0 * sign( hash_lowz ) + grad_results_0_1 * sign( abs( hash_lowz ) - 0.25.xxxx );
-
-	hash_highz *= 3.0;
-	vec4 grad_results_1_0 = mix( vec2( Pf.y, Pf_min1.y ).xxyy, vec2( Pf.x, Pf_min1.x ).xyxy, lessThan( hash_highz, 2.0.xxxx ) );
-	vec4 grad_results_1_1 = mix( Pf_min1.zzzz, vec2( Pf.y, Pf_min1.y ).xxyy, lessThan( hash_highz, 1.0.xxxx ) );
-	hash_highz = fract( hash_highz ) - 0.5;
-	vec4 grad_results_1 = grad_results_1_0 * sign( hash_highz ) + grad_results_1_1 * sign( abs( hash_highz ) - 0.25.xxxx );
-
-	//	blend the gradients and return
-	vec3 blend = Interpolation_C2( Pf );
-	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
-	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-	return mix( res1.x, res1.y, blend.x );
-#else
 	//
 	//	"improved" noise using 8 corner gradients.  Faster than the 12 mid-edge point method.
 	//	Ken mentions using diagonals like this can cause "clumping", but we'll live with that.
 	//	[1,1,1]  [-1,1,1]  [1,-1,1]  [-1,-1,1]
 	//	[1,1,-1] [-1,1,-1] [1,-1,-1] [-1,-1,-1]
 	//
-	hash_lowz -= 0.5.xxxx;
+	hash_lowz -= 0.5;
 	vec4 grad_results_0_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_lowz );
-	hash_lowz = abs( hash_lowz ) - 0.25.xxxx;
+	hash_lowz = abs( hash_lowz ) - 0.25;
 	vec4 grad_results_0_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_lowz );
-	vec4 grad_results_0_2 = Pf.zzzz * sign( abs( hash_lowz ) - 0.125.xxxx );
+	vec4 grad_results_0_2 = Pf.zzzz * sign( abs( hash_lowz ) - 0.125 );
 	vec4 grad_results_0 = grad_results_0_0 + grad_results_0_1 + grad_results_0_2;
 
-	hash_highz -= 0.5.xxxx;
+	hash_highz -= 0.5;
 	vec4 grad_results_1_0 = vec2( Pf.x, Pf_min1.x ).xyxy * sign( hash_highz );
-	hash_highz = abs( hash_highz ) - 0.25.xxxx;
+	hash_highz = abs( hash_highz ) - 0.25;
 	vec4 grad_results_1_1 = vec2( Pf.y, Pf_min1.y ).xxyy * sign( hash_highz );
-	vec4 grad_results_1_2 = Pf_min1.zzzz * sign( abs( hash_highz ) - 0.125.xxxx );
+	vec4 grad_results_1_2 = Pf_min1.zzzz * sign( abs( hash_highz ) - 0.125 );
 	vec4 grad_results_1 = grad_results_1_0 + grad_results_1_1 + grad_results_1_2;
 
 	//	blend the gradients and return
@@ -665,7 +640,6 @@ float Perlin3D( vec3 P )
 	vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
 	vec2 res1 = mix( res0.xy, res0.zw, blend.y );
 	return mix( res1.x, res1.y, blend.x ) * (2.0 / 3.0);	//	(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range
-#endif
 
 #endif
 
@@ -681,7 +655,7 @@ float ValuePerlin2D( vec2 P, float blend_val )
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
-	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -689,11 +663,11 @@ float ValuePerlin2D( vec2 P, float blend_val )
 	FAST32_hash_2D( Pi, hash_value, hash_x, hash_y );
 
 	//	calculate the gradient results
-	vec4 grad_x = hash_x - 0.49999.xxxx;
-	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_x = hash_x - 0.49999;
+	vec4 grad_y = hash_y - 0.49999;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
-	grad_results *= 1.4142135623730950488016887242097.xxxx;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.5)
-	grad_results = mix( (hash_value * 2.0.xxxx - 1.0.xxxx), grad_results, blend_val );
+	grad_results *= 1.4142135623730950488016887242097;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.5)
+	grad_results = mix( (hash_value * 2.0 - 1.0), grad_results, blend_val );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
@@ -721,18 +695,18 @@ float ValuePerlin3D( vec3 P, float blend_val )
 	FAST32_hash_3D( Pi, hash_value0, hashx0, hashy0, hashz0, hash_value1, hashx1, hashy1, hashz1 );
 
 	//	calculate the gradients
-	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
-	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
-	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
-	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
-	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
-	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_x0 = hashx0 - 0.49999;
+	vec4 grad_y0 = hashy0 - 0.49999;
+	vec4 grad_z0 = hashz0 - 0.49999;
+	vec4 grad_x1 = hashx1 - 0.49999;
+	vec4 grad_y1 = hashy1 - 0.49999;
+	vec4 grad_z1 = hashz1 - 0.49999;
 	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
-	grad_results_0 *= 1.1547005383792515290182975610039.xxxx;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.75)
-	grad_results_1 *= 1.1547005383792515290182975610039.xxxx;
-	grad_results_0 = mix( (hash_value0 * 2.0.xxxx - 1.0.xxxx), grad_results_0, blend_val );
-	grad_results_1 = mix( (hash_value1 * 2.0.xxxx - 1.0.xxxx), grad_results_1, blend_val );
+	grad_results_0 *= 1.1547005383792515290182975610039;		//	scale the perlin component to a -1.0->1.0 range    *= 1.0/sqrt(0.75)
+	grad_results_1 *= 1.1547005383792515290182975610039;
+	grad_results_0 = mix( (hash_value0 * 2.0 - 1.0), grad_results_0, blend_val );
+	grad_results_1 = mix( (hash_value1 * 2.0 - 1.0), grad_results_1, blend_val );
 
 	//	blend the gradients and return
 	vec3 blend = Interpolation_C2( Pf );
@@ -754,7 +728,7 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
-	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -762,12 +736,12 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 	FAST32_hash_2D( Pi, hash_x, hash_y, hash_value );
 
 	//	calculate the gradient results
-	vec4 grad_x = hash_x - 0.49999.xxxx;
-	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_x = hash_x - 0.49999;
+	vec4 grad_y = hash_y - 0.49999;
 	vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
 
 	//	invert the gradient to convert from perlin to cubist
-	grad_results = ( hash_value - 0.5.xxxx ) * ( 1.0.xxxx / grad_results );
+	grad_results = ( hash_value - 0.5 ) * ( 1.0 / grad_results );
 
 	//	blend the results and return
 	vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
@@ -801,18 +775,18 @@ float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 	FAST32_hash_3D( Pi, hashx0, hashy0, hashz0, hash_value0, hashx1, hashy1, hashz1, hash_value1 );
 
 	//	calculate the gradients
-	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
-	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
-	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
-	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
-	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
-	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_x0 = hashx0 - 0.49999;
+	vec4 grad_y0 = hashy0 - 0.49999;
+	vec4 grad_z0 = hashz0 - 0.49999;
+	vec4 grad_x1 = hashx1 - 0.49999;
+	vec4 grad_y1 = hashy1 - 0.49999;
+	vec4 grad_z1 = hashz1 - 0.49999;
 	vec4 grad_results_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y0 + Pf.zzzz * grad_z0 );
 	vec4 grad_results_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 ) * ( vec2( Pf.x, Pf_min1.x ).xyxy * grad_x1 + vec2( Pf.y, Pf_min1.y ).xxyy * grad_y1 + Pf_min1.zzzz * grad_z1 );
 
 	//	invert the gradient to convert from perlin to cubist
-	grad_results_0 = ( hash_value0 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_0 );
-	grad_results_1 = ( hash_value1 - 0.5.xxxx ) * ( 1.0.xxxx / grad_results_1 );
+	grad_results_0 = ( hash_value0 - 0.5 ) * ( 1.0 / grad_results_0 );
+	grad_results_1 = ( hash_value1 - 0.5 ) * ( 1.0 / grad_results_1 );
 
 	//	blend the gradients and return
 	vec3 blend = Interpolation_C2( Pf );
@@ -970,7 +944,7 @@ float SparseConvolution2D(vec2 P)
 	//	sum kernels and return
 	const float RADIUS = 1.0 - JITTER_WINDOW;
 	d *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
-	return dot( Falloff_Xsq_C2( min( d, 1.0.xxxx ) ), 1.0.xxxx );
+	return dot( Falloff_Xsq_C2( min( d, vec4( 1.0 ) ) ), vec4( 1.0 ) );
 }
 
 
@@ -1017,7 +991,7 @@ float SparseConvolution3D(vec3 P)
 	const float RADIUS = ( 1.0 - JITTER_WINDOW );
 	d1 *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
 	d2 *= ( ( 1.0 / RADIUS ) * ( 1.0 / RADIUS ) );
-	return dot( Falloff_Xsq_C2( min( d1, 1.0.xxxx ) ) + Falloff_Xsq_C2( min( d2, 1.0.xxxx ) ), 1.0.xxxx );
+	return dot( Falloff_Xsq_C2( min( d1, vec4( 1.0 ) ) ) + Falloff_Xsq_C2( min( d2, vec4( 1.0 ) ) ), vec4( 1.0 ) );
 }
 */
 
@@ -1050,9 +1024,9 @@ float PolkaDot2D( 	vec2 P,
 
 	//	calc the noise and return
 	RADIUS = 2.0/RADIUS;
-	Pf *= RADIUS.xx;
-	Pf -= ( RADIUS.xx - 1.0.xx );
-	Pf += hash.xy * ( RADIUS.xx - 2.0.xx );
+	Pf *= RADIUS;
+	Pf -= ( RADIUS - 1.0 );
+	Pf += hash.xy * ( RADIUS - 2.0 );
 	//Pf *= Pf;		//	this gives us a cool box looking effect
 	return Falloff_Xsq_C2( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
@@ -1086,9 +1060,9 @@ float PolkaDot3D( 	vec3 P,
 
 	//	calc the noise and return
 	RADIUS = 2.0/RADIUS;
-	Pf *= RADIUS.xxx;
-	Pf -= ( RADIUS.xxx - 1.0.xxx );
-	Pf += hash.xyz * ( RADIUS.xxx - 2.0.xxx );
+	Pf *= RADIUS;
+	Pf -= ( RADIUS - 1.0 );
+	Pf += hash.xyz * ( RADIUS - 2.0 );
 	//Pf *= Pf;		//	this gives us a cool box looking effect
 	return Falloff_Xsq_C2( min( dot( Pf, Pf ), 1.0 ) ) * VALUE;
 }
@@ -1107,7 +1081,7 @@ float PolkaDot3D( 	vec3 P,
 float Stars2D(	vec2 P,
 				float probability_threshold,		//	probability a star will be drawn  ( 0.0->1.0 )
 				float max_dimness,					//	the maximal dimness of a star ( 0.0->1.0   0.0 = all stars bright,  1.0 = maximum variation )
-				float two_over_radius )				//	fixed radius for the stars.  radius range is 0.0->1.0.  shader requires 2.0/radius as input.
+				float two_over_radius )				//	fixed radius for the stars.  radius range is 0.0->1.0  shader requires 2.0/radius as input.
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
@@ -1125,9 +1099,9 @@ float Stars2D(	vec2 P,
 	float VALUE = 1.0 - max_dimness * hash.z;
 
 	//	calc the noise and return
-	Pf *= two_over_radius.xx;
-	Pf -= ( two_over_radius.xx - 1.0.xx );
-	Pf += hash.xy * ( two_over_radius.xx - 2.0.xx );
+	Pf *= two_over_radius;
+	Pf -= ( two_over_radius - 1.0 );
+	Pf += hash.xy * ( two_over_radius - 2.0 );
 	return ( hash.w < probability_threshold ) ? ( Falloff_Xsq_C1( min( dot( Pf, Pf ), 1.0 ) ) * VALUE ) : 0.0;
 }
 
@@ -1151,7 +1125,7 @@ float SimplexPerlin2D( vec2 P )
 
 	//	establish our grid cell.
 	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
-	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+	vec2 Pi = floor( P + dot( P, vec2( SKEWFACTOR ) ) );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -1160,20 +1134,20 @@ float SimplexPerlin2D( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	establish vectors to the 3 corners of our simplex triangle
-	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
+	vec2 v0 = Pi - dot( Pi, vec2( UNSKEWFACTOR ) ) - P;
 	vec4 v1pos_v1hash = (v0.x < v0.y) ? vec4(SIMPLEX_POINTS.xy, hash_x.y, hash_y.y) : vec4(SIMPLEX_POINTS.yx, hash_x.z, hash_y.z);
 	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
 
 	//	calculate the dotproduct of our 3 corner vectors with 3 random normalized vectors
-	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999.xxx;
-	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999.xxx;
+	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999;
+	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999;
 	vec3 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * vec3( v0.x, v12.xz ) + grad_y * vec3( v0.y, v12.yw ) );
 
 	const float FINAL_NORMALIZATION = 99.204310604478759765467803137703;	//	scales the final result to a strict 1.0->-1.0 range
 
 	//	evaluate the surflet, sum and return
 	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
-	m = max(0.5.xxx - m, 0.0.xxx);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
+	m = max(0.5 - m, 0.0);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
 	m = m*m;
 	m = m*m;
 	return dot(m, grad_results) * FINAL_NORMALIZATION;
@@ -1201,10 +1175,10 @@ float SimplexPolkaDot2D( 	vec2 P,
 
 	//	establish our grid cell.
 	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
-	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+	vec2 Pi = floor( P + dot( P, vec2( SKEWFACTOR ) ) );
 
 	//	establish vectors to the 4 corners of our simplex triangle
-	vec2 v0 = ( Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P );
+	vec2 v0 = ( Pi - dot( Pi, vec2( UNSKEWFACTOR ) ) - P );
 	vec4 v0123_x = vec4( 0.0, SIMPLEX_POINTS.xyz ) + v0.x;
 	vec4 v0123_y = vec4( 0.0, SIMPLEX_POINTS.yxz ) + v0.y;
 
@@ -1217,13 +1191,13 @@ float SimplexPolkaDot2D( 	vec2 P,
 
 	//	apply user controls
 	radius = INV_SIMPLEX_TRI_HALF_EDGELEN/radius;		//	INV_SIMPLEX_TRI_HALF_EDGELEN here is to scale to a nice 0.0->1.0 range
-	v0123_x *= radius.xxxx;
-	v0123_y *= radius.xxxx;
+	v0123_x *= radius;
+	v0123_y *= radius;
 
 	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
-	vec4 point_distance = max( 0.0.xxxx, 1.0.xxxx - ( v0123_x*v0123_x + v0123_y*v0123_y ) );
+	vec4 point_distance = max( vec4( 0.0 ), 1.0 - ( v0123_x*v0123_x + v0123_y*v0123_y ) );
 	point_distance = point_distance*point_distance*point_distance;
-	return dot( 1.0.xxxx - hash * max_dimness.xxxx, point_distance );
+	return dot( 1.0 - hash * max_dimness, point_distance );
 }
 
 
@@ -1245,11 +1219,11 @@ float SimplexCellular2D( vec2 P )
 	const float UNSKEWFACTOR = 0.21132486540518711774542560974902;			// (3.0-sqrt(3.0))/6.0
 	const float SIMPLEX_TRI_HEIGHT = 0.70710678118654752440084436210485;	// sqrt( 0.5 )	height of simplex triangle.
 	const float INV_SIMPLEX_TRI_HEIGHT = 1.4142135623730950488016887242097;	//	1.0 / sqrt( 0.5 )
-	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR ) * INV_SIMPLEX_TRI_HEIGHT.xxx;		//	vertex info for simplex triangle
+	const vec3 SIMPLEX_POINTS = vec3( 1.0-UNSKEWFACTOR, -UNSKEWFACTOR, 1.0-2.0*UNSKEWFACTOR ) * INV_SIMPLEX_TRI_HEIGHT;		//	vertex info for simplex triangle
 
 	//	establish our grid cell.
 	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
-	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+	vec2 Pi = floor( P + dot( P, vec2( SKEWFACTOR ) ) );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -1263,7 +1237,7 @@ float SimplexCellular2D( vec2 P )
 	hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW;
 
 	//	calculate sq distance to closest point
-	vec2 p0 = ( ( Pi - dot( Pi, UNSKEWFACTOR.xx ).xx ) - P ) * INV_SIMPLEX_TRI_HEIGHT.xx;
+	vec2 p0 = ( ( Pi - dot( Pi, vec2( UNSKEWFACTOR ) ) ) - P ) * INV_SIMPLEX_TRI_HEIGHT;
 	hash_x += p0.xxxx;
 	hash_y += p0.yyyy;
 	hash_x.yzw += SIMPLEX_POINTS.xyz;
@@ -1279,7 +1253,7 @@ float SimplexCellular2D( vec2 P )
 //
 void Simplex3D_GetCornerVectors( 	vec3 P,					//	input point
 									out vec3 Pi,			//	integer grid index for the origin
-									out vec3 Pi_1,			//	offsets for the 2nd and 3rd corners.  ( the 4th = Pi + 1.0.xxx )
+									out vec3 Pi_1,			//	offsets for the 2nd and 3rd corners.  ( the 4th = Pi + 1.0 )
 									out vec3 Pi_2,
 									out vec4 v1234_x,		//	vectors from the 4 corners to the intput point
 									out vec4 v1234_y,
@@ -1299,15 +1273,15 @@ void Simplex3D_GetCornerVectors( 	vec3 P,					//	input point
 	P *= SIMPLEX_PYRAMID_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
 
 	//	Find the vectors to the corners of our simplex pyramid
-	Pi = floor( P + dot(P, SKEWFACTOR.xxx) );
-	vec3 x0 = P - Pi + dot(Pi, UNSKEWFACTOR.xxx);
+	Pi = floor( P + dot( P, vec3( SKEWFACTOR) ) );
+	vec3 x0 = P - Pi + dot(Pi, vec3( UNSKEWFACTOR ) );
 	vec3 g = step(x0.yzx, x0.xyz);
-	vec3 l = 1.0.xxx - g;
+	vec3 l = 1.0 - g;
 	Pi_1 = min( g.xyz, l.zxy );
 	Pi_2 = max( g.xyz, l.zxy );
-	vec3 x1 = x0 - Pi_1 + UNSKEWFACTOR.xxx;
-	vec3 x2 = x0 - Pi_2 + SKEWFACTOR.xxx;
-	vec3 x3 = x0 - SIMPLEX_CORNER_POS.xxx;
+	vec3 x1 = x0 - Pi_1 + UNSKEWFACTOR;
+	vec3 x2 = x0 - Pi_2 + SKEWFACTOR;
+	vec3 x3 = x0 - SIMPLEX_CORNER_POS;
 
 	//	pack them into a parallel-friendly arrangement
 	v1234_x = vec4( x0.x, x1.x, x2.x, x3.x );
@@ -1327,7 +1301,7 @@ vec4 Simplex3D_GetSurfletWeights( 	vec4 v1234_x,
 
 	//	evaluate surflet. f(x)=(0.5-x*x)^3
 	vec4 surflet_weights = v1234_x * v1234_x + v1234_y * v1234_y + v1234_z * v1234_z;
-	surflet_weights = max(0.5.xxxx - surflet_weights, 0.0.xxxx);		//	0.5 here represents the closest distance (squared) of any simplex pyramid corner to any of its planes.  ie, SIMPLEX_PYRAMID_HEIGHT^2
+	surflet_weights = max(0.5 - surflet_weights, 0.0);		//	0.5 here represents the closest distance (squared) of any simplex pyramid corner to any of its planes.  ie, SIMPLEX_PYRAMID_HEIGHT^2
 	return surflet_weights*surflet_weights*surflet_weights;
 }
 
@@ -1360,9 +1334,9 @@ float SimplexPerlin3D(vec3 P)
 	vec4 hash_2;
 	FAST32_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
 	//SGPP_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
-	hash_0 -= 0.49999.xxxx;
-	hash_1 -= 0.49999.xxxx;
-	hash_2 -= 0.49999.xxxx;
+	hash_0 -= 0.49999;
+	hash_1 -= 0.49999;
+	hash_2 -= 0.49999;
 
 	//	evaluate gradients
 	vec4 grad_results = inversesqrt( hash_0 * hash_0 + hash_1 * hash_1 + hash_2 * hash_2 ) * ( hash_0 * v1234_x + hash_1 * v1234_y + hash_2 * v1234_z );
@@ -1446,14 +1420,14 @@ float SimplexPolkaDot3D( 	vec3 P,
 	//	apply user controls
 	const float INV_SIMPLEX_TRI_HALF_EDGELEN = 2.3094010767585030580365951220078;	// scale to a 0.0->1.0 range.  2.0 / sqrt( 0.75 )
 	radius = INV_SIMPLEX_TRI_HALF_EDGELEN/radius;
-	v1234_x *= radius.xxxx;
-	v1234_y *= radius.xxxx;
-	v1234_z *= radius.xxxx;
+	v1234_x *= radius;
+	v1234_y *= radius;
+	v1234_z *= radius;
 
 	//	return a smooth falloff from the closest point.  ( we use a f(x)=(1.0-x*x)^3 falloff )
-	vec4 point_distance = max( 0.0.xxxx, 1.0.xxxx - ( v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z ) );
+	vec4 point_distance = max( vec4( 0.0 ), 1.0 - ( v1234_x*v1234_x + v1234_y*v1234_y + v1234_z*v1234_z ) );
 	point_distance = point_distance*point_distance*point_distance;
-	return dot( 1.0.xxxx - hash * max_dimness.xxxx, point_distance );
+	return dot( 1.0 - hash * max_dimness, point_distance );
 }
 
 
@@ -1478,7 +1452,7 @@ float QuinticHermite( float x, float ival0, float ival1, float egrad0, float egr
 	const vec3 C0 = vec3( -15.0, 8.0, 7.0 );
 	const vec3 C1 = vec3( 6.0, -3.0, -3.0 );
 	const vec3 C2 = vec3( 10.0, -6.0, -4.0 );
-	const vec3 h123 = ( ( ( C0 + C1 * x.xxx ) * x.xxx ) + C2 ) * ( x*x*x ).xxx;
+	vec3 h123 = ( ( ( C0 + C1 * x ) * x ) + C2 ) * ( x*x*x );
 	return ival0 + dot( vec3( (ival1 - ival0), egrad0, egrad1 ), h123.xyz + vec3( 0.0, x, 0.0 ) );
 }
 vec4 QuinticHermite( float x, vec4 ival0, vec4 ival1, vec4 egrad0, vec4 egrad1 )		// quintic hermite with start/end acceleration of 0.0
@@ -1486,16 +1460,16 @@ vec4 QuinticHermite( float x, vec4 ival0, vec4 ival1, vec4 egrad0, vec4 egrad1 )
 	const vec3 C0 = vec3( -15.0, 8.0, 7.0 );
 	const vec3 C1 = vec3( 6.0, -3.0, -3.0 );
 	const vec3 C2 = vec3( 10.0, -6.0, -4.0 );
-	const vec3 h123 = ( ( ( C0 + C1 * x.xxx ) * x.xxx ) + C2 ) * ( x*x*x ).xxx;
-	return ival0 + (ival1 - ival0) * h123.xxxx + egrad0 * ( h123.y + x ).xxxx + egrad1 * h123.zzzz;
+	vec3 h123 = ( ( ( C0 + C1 * x ) * x ) + C2 ) * ( x*x*x );
+	return ival0 + (ival1 - ival0) * h123.xxxx + egrad0 * vec4( h123.y + x ) + egrad1 * h123.zzzz;
 }
 vec4 QuinticHermite( float x, vec2 igrad0, vec2 igrad1, vec2 egrad0, vec2 egrad1 )		// quintic hermite with start/end position and acceleration of 0.0
 {
 	const vec3 C0 = vec3( -15.0, 8.0, 7.0 );
 	const vec3 C1 = vec3( 6.0, -3.0, -3.0 );
 	const vec3 C2 = vec3( 10.0, -6.0, -4.0 );
-	const vec3 h123 = ( ( ( C0 + C1 * x.xxx ) * x.xxx ) + C2 ) * ( x*x*x ).xxx;
-	return vec4( egrad1, igrad0 ) * vec4( h123.zz, 1.0.xx ) + vec4( egrad0, h123.xx ) * vec4( ( h123.y + x ).xx, (igrad1 - igrad0) );	//	returns vec4( out_ival.xy, out_igrad.xy )
+	vec3 h123 = ( ( ( C0 + C1 * x ) * x ) + C2 ) * ( x*x*x );
+	return vec4( egrad1, igrad0 ) * vec4( h123.zz, 1.0, 1.0 ) + vec4( egrad0, h123.xx ) * vec4( vec2( h123.y + x ), (igrad1 - igrad0) );	//	returns vec4( out_ival.xy, out_igrad.xy )
 }
 void QuinticHermite( 	float x,
 						vec4 ival0, vec4 ival1,			//	values are interpolated using the gradient arguments
@@ -1507,8 +1481,8 @@ void QuinticHermite( 	float x,
 	const vec3 C0 = vec3( -15.0, 8.0, 7.0 );
 	const vec3 C1 = vec3( 6.0, -3.0, -3.0 );
 	const vec3 C2 = vec3( 10.0, -6.0, -4.0 );
-	const vec3 h123 = ( ( ( C0 + C1 * x.xxx ) * x.xxx ) + C2 ) * ( x*x*x ).xxx;
-	out_ival = ival0 + (ival1 - ival0) * h123.xxxx + egrad0 * ( h123.y + x ).xxxx + egrad1 * h123.zzzz;
+	vec3 h123 = ( ( ( C0 + C1 * x ) * x ) + C2 ) * ( x*x*x );
+	out_ival = ival0 + (ival1 - ival0) * h123.xxxx + egrad0 * vec4( h123.y + x ) + egrad1 * h123.zzzz;
 	out_igrad_x = igrad_x0 + (igrad_x1 - igrad_x0) * h123.xxxx;	//	NOTE: gradients of 0.0
 	out_igrad_y = igrad_y0 + (igrad_y1 - igrad_y0) * h123.xxxx;	//	NOTE: gradients of 0.0
 }
@@ -1521,8 +1495,8 @@ void QuinticHermite( 	float x,
 	const vec3 C0 = vec3( -15.0, 8.0, 7.0 );
 	const vec3 C1 = vec3( 6.0, -3.0, -3.0 );
 	const vec3 C2 = vec3( 10.0, -6.0, -4.0 );
-	const vec3 h123 = ( ( ( C0 + C1 * x.xxx ) * x.xxx ) + C2 ) * ( x*x*x ).xxx;
-	out_ival = egrad0 * ( h123.y + x ).xxxx + egrad1 * h123.zzzz;
+	vec3 h123 = ( ( ( C0 + C1 * x ) * x ) + C2 ) * ( x*x*x );
+	out_ival = egrad0 * vec4( h123.y + x ) + egrad1 * h123.zzzz;
 	out_igrad_x = igrad_x0 + (igrad_x1 - igrad_x0) * h123.xxxx;	//	NOTE: gradients of 0.0
 	out_igrad_y = igrad_y0 + (igrad_y1 - igrad_y0) * h123.xxxx;	//	NOTE: gradients of 0.0
 }
@@ -1531,7 +1505,7 @@ float QuinticHermiteDeriv( float x, float ival0, float ival1, float egrad0, floa
 	const vec3 C0 = vec3( 30.0, -15.0, -15.0 );
 	const vec3 C1 = vec3( -60.0, 32.0, 28.0 );
 	const vec3 C2 = vec3( 30.0, -18.0, -12.0 );
-	const vec3 h123 = ( ( ( C1 + C0 * x.xxx ) * x.xxx ) + C2 ) * ( x*x ).xxx;
+	vec3 h123 = ( ( ( C1 + C0 * x ) * x ) + C2 ) * ( x*x );
 	return dot( vec3( (ival1 - ival0), egrad0, egrad1 ), h123.xyz + vec3( 0.0, 1.0, 0.0 ) );
 }
 
@@ -1614,7 +1588,7 @@ float Hermite3D( vec3 P )
 	//	evaluate the hermite
 	vec4 ival_results, igrad_results_x, igrad_results_y;
 	QuinticHermite( Pf.z, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results, igrad_results_x, igrad_results_y );
-	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0.xx ), vec4( igrad_results_y.zw, 0.0.xx ) );
+	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0, 0.0 ), vec4( igrad_results_y.zw, 0.0, 0.0 ) );
 	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * FINAL_NORM_VAL;
 }
 
@@ -1644,7 +1618,7 @@ float ValueHermite2D( 	vec2 P,
 	hash_value = ( hash_value - 0.5) * value_scale;
 
 	//	evaluate the hermite
-	vec4 qh_results = QuinticHermite( Pf.y, vec4(hash_value.xy, hash_gradx.xy), vec4(hash_value.zw, hash_gradx.zw), vec4( hash_grady.xy, 0.0.xx ), vec4( hash_grady.zw, 0.0.xx ) );
+	vec4 qh_results = QuinticHermite( Pf.y, vec4(hash_value.xy, hash_gradx.xy), vec4(hash_value.zw, hash_gradx.zw), vec4( hash_grady.xy, 0.0, 0.0 ), vec4( hash_grady.zw, 0.0, 0.0 ) );
 	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * normalization_val;
 }
 
@@ -1682,7 +1656,7 @@ float ValueHermite3D( 	vec3 P,
 	//	evaluate the hermite
 	vec4 ival_results, igrad_results_x, igrad_results_y;
 	QuinticHermite( Pf.z, hash_value0, hash_value1, hash_gradx0, hash_gradx1, hash_grady0, hash_grady1, hash_gradz0, hash_gradz1, ival_results, igrad_results_x, igrad_results_y );
-	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0.xx ), vec4( igrad_results_y.zw, 0.0.xx ) );
+	vec4 qh_results = QuinticHermite( Pf.y, vec4(ival_results.xy, igrad_results_x.xy), vec4(ival_results.zw, igrad_results_x.zw), vec4( igrad_results_y.xy, 0.0, 0.0 ), vec4( igrad_results_y.zw, 0.0, 0.0 ) );
 	return QuinticHermite( Pf.x, qh_results.x, qh_results.y, qh_results.z, qh_results.w ) * normalization_val;
 }
 
@@ -1709,7 +1683,7 @@ vec3 Value2D_Deriv( vec2 P )
 	//	blend result and return
 	vec4 blend = Interpolation_C2_InterpAndDeriv( Pf );
 	vec4 res0 = mix( hash.xyxz, hash.zwyw, blend.yyxx );
-	return vec3( res0.x, 0.0.xx ) + ( res0.yyw - res0.xxz ) * blend.xzw;
+	return vec3( res0.x, 0.0, 0.0 ) + ( res0.yyw - res0.xxz ) * blend.xzw;
 }
 
 //
@@ -1734,7 +1708,7 @@ vec4 Value3D_Deriv( vec3 P )
 	vec4 res1 = mix( res0.xyxz, res0.zwyw, blend.yyxx );
 	vec4 res3 = mix( vec4( hash_lowz.xy, hash_highz.xy ), vec4( hash_lowz.zw, hash_highz.zw ), blend.y );
 	vec2 res4 = mix( res3.xz, res3.yw, blend.x );
-	return vec4( res1.x, 0.0.xxx ) + ( vec4( res1.yyw, res4.y ) - vec4( res1.xxz, res4.x ) ) * vec4( blend.x, Interpolation_C2_Deriv( Pf ) );
+	return vec4( res1.x, 0.0, 0.0, 0.0 ) + ( vec4( res1.yyw, res4.y ) - vec4( res1.xxz, res4.x ) ) * vec4( blend.x, Interpolation_C2_Deriv( Pf ) );
 }
 
 //
@@ -1746,7 +1720,7 @@ vec3 PerlinSurflet2D_Deriv( vec2 P )
 {
 	//	establish our grid cell and unit position
 	vec2 Pi = floor(P);
-	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0.xx );
+	vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -1755,8 +1729,8 @@ vec3 PerlinSurflet2D_Deriv( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	calculate the gradient results
-	vec4 grad_x = hash_x - 0.49999.xxxx;
-	vec4 grad_y = hash_y - 0.49999.xxxx;
+	vec4 grad_x = hash_x - 0.49999;
+	vec4 grad_y = hash_y - 0.49999;
 	vec4 norm = inversesqrt( grad_x * grad_x + grad_y * grad_y );
 	grad_x *= norm;
 	grad_y *= norm;
@@ -1765,7 +1739,7 @@ vec3 PerlinSurflet2D_Deriv( vec2 P )
 	//	eval the surflet
 	vec4 m = Pf_Pfmin1 * Pf_Pfmin1;
 	m = m.xzxz + m.yyww;
-	m = max(1.0.xxxx - m, 0.0.xxxx);
+	m = max(1.0 - m, 0.0);
 	vec4 m2 = m*m;
 	vec4 m3 = m*m2;
 
@@ -1799,16 +1773,16 @@ vec4 PerlinSurflet3D_Deriv( vec3 P )
 	//SGPP_hash_3D( Pi, hashx0, hashy0, hashz0, hashx1, hashy1, hashz1 );
 
 	//	calculate the gradients
-	vec4 grad_x0 = hashx0 - 0.49999.xxxx;
-	vec4 grad_y0 = hashy0 - 0.49999.xxxx;
-	vec4 grad_z0 = hashz0 - 0.49999.xxxx;
+	vec4 grad_x0 = hashx0 - 0.49999;
+	vec4 grad_y0 = hashy0 - 0.49999;
+	vec4 grad_z0 = hashz0 - 0.49999;
 	vec4 norm_0 = inversesqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 + grad_z0 * grad_z0 );
 	grad_x0 *= norm_0;
 	grad_y0 *= norm_0;
 	grad_z0 *= norm_0;
-	vec4 grad_x1 = hashx1 - 0.49999.xxxx;
-	vec4 grad_y1 = hashy1 - 0.49999.xxxx;
-	vec4 grad_z1 = hashz1 - 0.49999.xxxx;
+	vec4 grad_x1 = hashx1 - 0.49999;
+	vec4 grad_y1 = hashy1 - 0.49999;
+	vec4 grad_z1 = hashz1 - 0.49999;
 	vec4 norm_1 = inversesqrt( grad_x1 * grad_x1 + grad_y1 * grad_y1 + grad_z1 * grad_z1 );
 	grad_x1 *= norm_1;
 	grad_y1 *= norm_1;
@@ -1823,12 +1797,12 @@ vec4 PerlinSurflet3D_Deriv( vec3 P )
 
 	//	evaluate the surflet
 	vec4 m_0 = vecs_len_sq + Pf_sq.zzzz;
-	m_0 = max(1.0.xxxx - m_0, 0.0.xxxx);
+	m_0 = max(1.0 - m_0, 0.0);
 	vec4 m2_0 = m_0*m_0;
 	vec4 m3_0 = m_0*m2_0;
 
 	vec4 m_1 = vecs_len_sq + Pf_min1_sq.zzzz;
-	m_1 = max(1.0.xxxx - m_1, 0.0.xxxx);
+	m_1 = max(1.0 - m_1, 0.0);
 	vec4 m2_1 = m_1*m_1;
 	vec4 m3_1 = m_1*m2_1;
 
@@ -1864,7 +1838,7 @@ vec3 SimplexPerlin2D_Deriv( vec2 P )
 
 	//	establish our grid cell.
 	P *= SIMPLEX_TRI_HEIGHT;		// scale space so we can have an approx feature size of 1.0  ( optional )
-	vec2 Pi = floor( P + dot( P, SKEWFACTOR.xx ).xx );
+	vec2 Pi = floor( P + dot( P, vec2( SKEWFACTOR ) ) );
 
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
@@ -1873,13 +1847,13 @@ vec3 SimplexPerlin2D_Deriv( vec2 P )
 	//SGPP_hash_2D( Pi, hash_x, hash_y );
 
 	//	establish vectors to the 3 corners of our simplex triangle
-	vec2 v0 = Pi - dot( Pi, UNSKEWFACTOR.xx ).xx - P;
+	vec2 v0 = Pi - dot( Pi, vec2( UNSKEWFACTOR ) ) - P;
 	vec4 v1pos_v1hash = (v0.x < v0.y) ? vec4(SIMPLEX_POINTS.xy, hash_x.y, hash_y.y) : vec4(SIMPLEX_POINTS.yx, hash_x.z, hash_y.z);
 	vec4 v12 = vec4( v1pos_v1hash.xy, SIMPLEX_POINTS.zz ) + v0.xyxy;
 
 	//	calculate the dotproduct of our 3 corner vectors with 3 random normalized vectors
-	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999.xxx;
-	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999.xxx;
+	vec3 grad_x = vec3( hash_x.x, v1pos_v1hash.z, hash_x.w ) - 0.49999;
+	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999;
 	vec3 norm = inversesqrt( grad_x * grad_x + grad_y * grad_y );
 	grad_x *= norm;
 	grad_y *= norm;
@@ -1887,7 +1861,7 @@ vec3 SimplexPerlin2D_Deriv( vec2 P )
 
 	//	evaluate the surflet
 	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
-	m = max(0.5.xxx - m, 0.0.xxx);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
+	m = max(0.5 - m, 0.0);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
 	vec3 m2 = m*m;
 	vec3 m4 = m2*m2;
 
@@ -1925,9 +1899,9 @@ vec4 SimplexPerlin3D_Deriv(vec3 P)
 	vec4 hash_2;
 	FAST32_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
 	//SGPP_hash_3D( Pi, Pi_1, Pi_2, hash_0, hash_1, hash_2 );
-	hash_0 -= 0.49999.xxxx;
-	hash_1 -= 0.49999.xxxx;
-	hash_2 -= 0.49999.xxxx;
+	hash_0 -= 0.49999;
+	hash_1 -= 0.49999;
+	hash_2 -= 0.49999;
 
 	//	normalize random gradient vectors
 	vec4 norm = inversesqrt( hash_0 * hash_0 + hash_1 * hash_1 + hash_2 * hash_2 );
@@ -1940,7 +1914,7 @@ vec4 SimplexPerlin3D_Deriv(vec3 P)
 
 	//	evaluate the surflet f(x)=(0.5-x*x)^3
 	vec4 m = v1234_x * v1234_x + v1234_y * v1234_y + v1234_z * v1234_z;
-	m = max(0.5.xxxx - m, 0.0.xxxx);		//	The 0.5 here is SIMPLEX_PYRAMID_HEIGHT^2
+	m = max(0.5 - m, 0.0);		//	The 0.5 here is SIMPLEX_PYRAMID_HEIGHT^2
 	vec4 m2 = m*m;
 	vec4 m3 = m*m2;
 
@@ -2057,9 +2031,9 @@ vec4 Hermite3D_Deriv( vec3 P )
 							ival_results_y, igrad_results_x_y, igrad_results_z_y );
 
 	//	drop things from two dimensions to one
-	vec4 qh_results_x = QuinticHermite( Pf.y, vec4(ival_results_z.xy, igrad_results_x_z.xy), vec4(ival_results_z.zw, igrad_results_x_z.zw), vec4( igrad_results_y_z.xy, 0.0.xx ), vec4( igrad_results_y_z.zw, 0.0.xx ) );
-	vec4 qh_results_y = QuinticHermite( Pf.x, vec4(ival_results_z.xz, igrad_results_y_z.xz), vec4(ival_results_z.yw, igrad_results_y_z.yw), vec4( igrad_results_x_z.xz, 0.0.xx ), vec4( igrad_results_x_z.yw, 0.0.xx ) );
-	vec4 qh_results_z = QuinticHermite( Pf.x, vec4(ival_results_y.xz, igrad_results_z_y.xz), vec4(ival_results_y.yw, igrad_results_z_y.yw), vec4( igrad_results_x_y.xz, 0.0.xx ), vec4( igrad_results_x_y.yw, 0.0.xx ) );
+	vec4 qh_results_x = QuinticHermite( Pf.y, vec4(ival_results_z.xy, igrad_results_x_z.xy), vec4(ival_results_z.zw, igrad_results_x_z.zw), vec4( igrad_results_y_z.xy, 0.0, 0.0 ), vec4( igrad_results_y_z.zw, 0.0, 0.0 ) );
+	vec4 qh_results_y = QuinticHermite( Pf.x, vec4(ival_results_z.xz, igrad_results_y_z.xz), vec4(ival_results_z.yw, igrad_results_y_z.yw), vec4( igrad_results_x_z.xz, 0.0, 0.0 ), vec4( igrad_results_x_z.yw, 0.0, 0.0 ) );
+	vec4 qh_results_z = QuinticHermite( Pf.x, vec4(ival_results_y.xz, igrad_results_z_y.xz), vec4(ival_results_y.yw, igrad_results_z_y.yw), vec4( igrad_results_x_y.xz, 0.0, 0.0 ), vec4( igrad_results_x_y.yw, 0.0, 0.0 ) );
 
 	//	for each hermite curve calculate the derivative
 	float deriv_x = QuinticHermiteDeriv( Pf.x, qh_results_x.x, qh_results_x.y, qh_results_x.z, qh_results_x.w );
