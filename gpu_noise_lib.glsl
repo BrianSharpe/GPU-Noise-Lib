@@ -1143,7 +1143,11 @@ float SimplexPerlin2D( vec2 P )
 	vec3 grad_y = vec3( hash_y.x, v1pos_v1hash.w, hash_y.w ) - 0.49999;
 	vec3 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * vec3( v0.x, v12.xz ) + grad_y * vec3( v0.y, v12.yw ) );
 
-	const float FINAL_NORMALIZATION = 99.204310604478759765467803137703;	//	scales the final result to a strict 1.0->-1.0 range
+	//	Normalization factor to scale the final result to a strict 1.0->-1.0 range
+	//	x = ( sqrt( 0.5 )/sqrt( 0.75 ) ) * 0.5
+	//	NF = 1.0 / ( x * ( ( 0.5 – x*x ) ^ 4 ) * 2.0 )
+	//	http://briansharpe.wordpress.com/2012/01/13/simplex-noise/#comment-36
+	const float FINAL_NORMALIZATION = 99.204334582718712976990005025589;
 
 	//	evaluate the surflet, sum and return
 	vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
@@ -1309,7 +1313,7 @@ vec4 Simplex3D_GetSurfletWeights( 	vec4 v1234_x,
 
 //
 //	SimplexPerlin3D  ( simplex gradient noise )
-//	Perlin noise over a simplex (triangular) grid
+//	Perlin noise over a simplex (tetrahedron) grid
 //	Return value range of -1.0->1.0
 //	http://briansharpe.files.wordpress.com/2012/01/simplexperlinsample.jpg
 //
@@ -1341,7 +1345,11 @@ float SimplexPerlin3D(vec3 P)
 	//	evaluate gradients
 	vec4 grad_results = inversesqrt( hash_0 * hash_0 + hash_1 * hash_1 + hash_2 * hash_2 ) * ( hash_0 * v1234_x + hash_1 * v1234_y + hash_2 * v1234_z );
 
-	const float FINAL_NORMALIZATION = 37.837217149891986479046334729594;	//	scales the final result to a strict 1.0->-1.0 range
+	//	Normalization factor to scale the final result to a strict 1.0->-1.0 range
+	//	x = sqrt( 0.75 ) * 0.5
+	//	NF = 1.0 / ( x * ( ( 0.5 – x*x ) ^ 3 ) * 2.0 )
+	//	http://briansharpe.wordpress.com/2012/01/13/simplex-noise/#comment-36
+	const float FINAL_NORMALIZATION = 37.837227241611314102871574478976;
 
 	//	sum with the surflet and return
 	return dot( Simplex3D_GetSurfletWeights( v1234_x, v1234_y, v1234_z ), grad_results ) * FINAL_NORMALIZATION;
@@ -1349,7 +1357,7 @@ float SimplexPerlin3D(vec3 P)
 
 //
 //	SimplexCellular3D
-//	cellular noise over a simplex (triangular) grid
+//	cellular noise over a simplex (tetrahedron) grid
 //	Return value range of 0.0->~1.0
 //	http://briansharpe.files.wordpress.com/2012/01/simplexcellularsample.jpg
 //
@@ -1397,7 +1405,7 @@ float SimplexCellular3D( vec3 P )
 
 //
 //	SimplexPolkaDot3D
-//	polkadots over a simplex (triangular) grid
+//	polkadots over a simplex (tetrahedron) grid
 //	Return value range of 0.0->1.0
 //	http://briansharpe.files.wordpress.com/2012/01/simplexpolkadotsample.jpg
 //
