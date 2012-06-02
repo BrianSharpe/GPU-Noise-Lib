@@ -1537,7 +1537,7 @@ float Hermite2D( vec2 P )
 	hash_gradx = ( hash_gradx - 0.49999);
 	hash_grady = ( hash_grady - 0.49999);
 
-#if 0
+#if 1
 	//	normalize gradients
 	vec4 norm = inversesqrt( hash_gradx * hash_gradx + hash_grady * hash_grady );
 	hash_gradx *= norm;
@@ -1577,7 +1577,7 @@ float Hermite3D( vec3 P )
 	hash_grady1 = ( hash_grady1 - 0.49999);
 	hash_gradz1 = ( hash_gradz1 - 0.49999);
 
-#if 0
+#if 1
 	//	normalize gradients
 	vec4 norm0 = inversesqrt( hash_gradx0 * hash_gradx0 + hash_grady0 * hash_grady0 + hash_gradz0 * hash_gradz0 );
 	hash_gradx0 *= norm0;
@@ -1959,7 +1959,7 @@ vec3 Hermite2D_Deriv( vec2 P )
 	hash_gradx = ( hash_gradx - 0.49999);
 	hash_grady = ( hash_grady - 0.49999);
 
-#if 0
+#if 1
 	//	normalize gradients
 	vec4 norm = inversesqrt( hash_gradx * hash_gradx + hash_grady * hash_grady );
 	hash_gradx *= norm;
@@ -2007,7 +2007,7 @@ vec4 Hermite3D_Deriv( vec3 P )
 	hash_grady1 = ( hash_grady1 - 0.49999);
 	hash_gradz1 = ( hash_gradz1 - 0.49999);
 
-#if 0
+#if 1
 	//	normalize gradients
 	vec4 norm0 = inversesqrt( hash_gradx0 * hash_gradx0 + hash_grady0 * hash_grady0 + hash_gradz0 * hash_gradz0 );
 	hash_gradx0 *= norm0;
