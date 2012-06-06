@@ -338,14 +338,14 @@ void FAST32_hash_3D( 	vec3 gridcell,
 	vec4 P = vec4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
 	P *= P;
 	P = P.xzxz * P.yyww;
-	lowz_hash_2.xyzw = vec4( 1.0 / ( SOMELARGEFLOATS.xyzx + vec2( gridcell.z, gridcell_inc1.z ).xxxy * ZINC.xyzx ) );
-	highz_hash_2.xy = vec2( 1.0 / ( SOMELARGEFLOATS.yz + gridcell_inc1.zz * ZINC.yz ) );
-	lowz_hash_0 = fract( P * lowz_hash_2.xxxx );
-	highz_hash_0 = fract( P * lowz_hash_2.wwww );
-	lowz_hash_1 = fract( P * lowz_hash_2.yyyy );
-	highz_hash_1 = fract( P * highz_hash_2.xxxx );
-	lowz_hash_2 = fract( P * lowz_hash_2.zzzz );
-	highz_hash_2 = fract( P * highz_hash_2.yyyy );
+	vec3 lowz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell.zzz * ZINC.xyz ) );
+	vec3 highz_mod = vec3( 1.0 / ( SOMELARGEFLOATS.xyz + gridcell_inc1.zzz * ZINC.xyz ) );
+	lowz_hash_0 = fract( P * lowz_mod.xxxx );
+	highz_hash_0 = fract( P * highz_mod.xxxx );
+	lowz_hash_1 = fract( P * lowz_mod.yyyy );
+	highz_hash_1 = fract( P * highz_mod.yyyy );
+	lowz_hash_2 = fract( P * lowz_mod.zzzz );
+	highz_hash_2 = fract( P * highz_mod.zzzz );
 }
 void FAST32_hash_3D( 	vec3 gridcell,
 						out vec4 lowz_hash_0,
