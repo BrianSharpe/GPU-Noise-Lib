@@ -1878,7 +1878,7 @@ vec3 SimplexPerlin2D_Deriv( vec2 P )
 	float xderiv = dot( temp, vec3( v0.x, v12.xz ) ) - dot( m4, grad_x );
 	float yderiv = dot( temp, vec3( v0.y, v12.yw ) ) - dot( m4, grad_y );
 
-	const float FINAL_NORMALIZATION = 99.204310604478759765467803137703;	//	scales the final result to a strict 1.0->-1.0 range
+	const float FINAL_NORMALIZATION = 99.204334582718712976990005025589;	//	scales the final result to a strict 1.0->-1.0 range
 
 	//	sum the surflets and return all results combined in a vec3
 	return vec3( dot( m4, grad_results ), xderiv, yderiv ) * FINAL_NORMALIZATION;
@@ -1932,7 +1932,7 @@ vec4 SimplexPerlin3D_Deriv(vec3 P)
 	float yderiv = dot( temp, v1234_y ) + dot( m3, hash_1 );
 	float zderiv = dot( temp, v1234_z ) + dot( m3, hash_2 );
 
-	const float FINAL_NORMALIZATION = 37.837217149891986479046334729594;	//	scales the final result to a strict 1.0->-1.0 range
+	const float FINAL_NORMALIZATION = 37.837227241611314102871574478976;	//	scales the final result to a strict 1.0->-1.0 range
 
 	//	sum with the surflet and return
 	return vec4( dot( m3, grad_results ), xderiv, yderiv, zderiv ) * FINAL_NORMALIZATION;
