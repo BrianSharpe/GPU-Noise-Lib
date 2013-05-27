@@ -820,6 +820,70 @@ float Perlin3D( vec3 P )
 
 }
 
+
+//
+// Perlin Noise 4D ( gradient noise )
+// Return value range of -1.0->1.0
+//
+float Perlin4D( vec4 P )
+{
+    // establish our grid cell and unit position
+    vec4 Pi = floor(P);
+    vec4 Pf = P - Pi;
+    vec4 Pf_min1 = Pf - 1.0;
+
+    //    calculate the hash.
+    vec4 lowz_loww_hash_0, lowz_loww_hash_1, lowz_loww_hash_2, lowz_loww_hash_3;
+    vec4 highz_loww_hash_0, highz_loww_hash_1, highz_loww_hash_2, highz_loww_hash_3;
+    vec4 lowz_highw_hash_0, lowz_highw_hash_1, lowz_highw_hash_2, lowz_highw_hash_3;
+    vec4 highz_highw_hash_0, highz_highw_hash_1, highz_highw_hash_2, highz_highw_hash_3;
+    FAST32_2_hash_4D(
+        Pi,
+        lowz_loww_hash_0, lowz_loww_hash_1, lowz_loww_hash_2, lowz_loww_hash_3,
+        highz_loww_hash_0, highz_loww_hash_1, highz_loww_hash_2, highz_loww_hash_3,
+        lowz_highw_hash_0, lowz_highw_hash_1, lowz_highw_hash_2, lowz_highw_hash_3,
+        highz_highw_hash_0, highz_highw_hash_1, highz_highw_hash_2, highz_highw_hash_3 );
+
+    //	calculate the gradients
+    lowz_loww_hash_0 -= 0.49999;
+    lowz_loww_hash_1 -= 0.49999;
+    lowz_loww_hash_2 -= 0.49999;
+    lowz_loww_hash_3 -= 0.49999;
+    highz_loww_hash_0 -= 0.49999;
+    highz_loww_hash_1 -= 0.49999;
+    highz_loww_hash_2 -= 0.49999;
+    highz_loww_hash_3 -= 0.49999;
+    lowz_highw_hash_0 -= 0.49999;
+    lowz_highw_hash_1 -= 0.49999;
+    lowz_highw_hash_2 -= 0.49999;
+    lowz_highw_hash_3 -= 0.49999;
+    highz_highw_hash_0 -= 0.49999;
+    highz_highw_hash_1 -= 0.49999;
+    highz_highw_hash_2 -= 0.49999;
+    highz_highw_hash_3 -= 0.49999;
+
+    vec4 grad_results_lowz_loww = inversesqrt( lowz_loww_hash_0 * lowz_loww_hash_0 + lowz_loww_hash_1 * lowz_loww_hash_1 + lowz_loww_hash_2 * lowz_loww_hash_2 + lowz_loww_hash_3 * lowz_loww_hash_3 );
+    grad_results_lowz_loww *= ( vec2( Pf.x, Pf_min1.x ).xyxy * lowz_loww_hash_0 + vec2( Pf.y, Pf_min1.y ).xxyy * lowz_loww_hash_1 + Pf.zzzz * lowz_loww_hash_2 + Pf.wwww * lowz_loww_hash_3 );
+
+    vec4 grad_results_highz_loww = inversesqrt( highz_loww_hash_0 * highz_loww_hash_0 + highz_loww_hash_1 * highz_loww_hash_1 + highz_loww_hash_2 * highz_loww_hash_2 + highz_loww_hash_3 * highz_loww_hash_3 );
+    grad_results_highz_loww *= ( vec2( Pf.x, Pf_min1.x ).xyxy * highz_loww_hash_0 + vec2( Pf.y, Pf_min1.y ).xxyy * highz_loww_hash_1 + Pf_min1.zzzz * highz_loww_hash_2 + Pf.wwww * highz_loww_hash_3 );
+
+    vec4 grad_results_lowz_highw = inversesqrt( lowz_highw_hash_0 * lowz_highw_hash_0 + lowz_highw_hash_1 * lowz_highw_hash_1 + lowz_highw_hash_2 * lowz_highw_hash_2 + lowz_highw_hash_3 * lowz_highw_hash_3 );
+    grad_results_lowz_highw *= ( vec2( Pf.x, Pf_min1.x ).xyxy * lowz_highw_hash_0 + vec2( Pf.y, Pf_min1.y ).xxyy * lowz_highw_hash_1 + Pf.zzzz * lowz_highw_hash_2 + Pf_min1.wwww * lowz_highw_hash_3 );
+
+    vec4 grad_results_highz_highw = inversesqrt( highz_highw_hash_0 * highz_highw_hash_0 + highz_highw_hash_1 * highz_highw_hash_1 + highz_highw_hash_2 * highz_highw_hash_2 + highz_highw_hash_3 * highz_highw_hash_3 );
+    grad_results_highz_highw *= ( vec2( Pf.x, Pf_min1.x ).xyxy * highz_highw_hash_0 + vec2( Pf.y, Pf_min1.y ).xxyy * highz_highw_hash_1 + Pf_min1.zzzz * highz_highw_hash_2 + Pf_min1.wwww * highz_highw_hash_3 );
+
+    // Classic Perlin Interpolation
+    vec4 blend = Interpolation_C2( Pf );
+    vec4 res0 = mix( grad_results_lowz_loww, grad_results_lowz_highw, blend.w );
+    vec4 res1 = mix( grad_results_highz_loww, grad_results_highz_highw, blend.w );
+    res0 = mix( res0, res1, blend.z );
+    vec2 res2 = mix( res0.xy, res0.zw, blend.y );
+    return mix( res2.x, res2.y, blend.x );
+}
+
+
 //
 //	ValuePerlin Noise 2D	( value gradient noise )
 //	A uniform blend between value and perlin noise
