@@ -3,7 +3,7 @@
 //	http://briansharpe.wordpress.com
 //	https://github.com/BrianSharpe
 //
-//	I'm not one for copywrites.  Use the code however you wish.
+//	I'm not one for copyrights.  Use the code however you wish.
 //	All I ask is that credit be given back to the blog or myself when appropriate.
 //	And also to let me know if you come up with any changes, improvements, thoughts or interesting uses for this stuff. :)
 //	Thanks!
@@ -22,7 +22,6 @@
 //	2) 16bit and 24bit implementations of hashes and noises
 //	3) Lift various noise implementations out to individual self-contained files
 //	4) Implement texture-based versions
-//	5) 4D noises
 //
 
 
@@ -392,7 +391,7 @@ void FAST32_hash_3D( 	vec3 gridcell,
 //
 //	An alternative to FastHash32
 //	- slightly slower
-//	- slightly improved randomness
+//	- can have a larger domain
 //	- allows for a 4D implementation
 //
 //	(eg)4D is computed like so....
@@ -401,6 +400,45 @@ void FAST32_hash_3D( 	vec3 gridcell,
 //	coord *= coord;
 //	hash = mod( coord.x * coord.y * coord.z * coord.w, SOMELARGEFLOAT ) / SOMELARGEFLOAT;
 //
+vec4 FAST32_2_hash_2D( vec2 gridcell )	//	generates a random number for each of the 4 cell corners
+{
+	//	gridcell is assumed to be an integer coordinate
+	const vec2 OFFSET = vec2( 403.839172, 377.242706 );
+	const float DOMAIN = 69.0;		//	NOTE:  this can most likely be extended with some tweaking of the other parameters
+	const float SOMELARGEFLOAT = 32745.708984;
+	const vec2 SCALE = vec2( 2.009842, 1.372549 );
+
+	vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0 );
+	P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
+	P = ( P * SCALE.xyxy ) + OFFSET.xyxy;
+	P *= P;
+	return fract( P.xzxz * P.yyww * ( 1.0 / SOMELARGEFLOAT ) );
+}
+void FAST32_2_hash_3D( 	vec3 gridcell,
+						out vec4 z0_hash,			//  vec4 == ( x0y0, x1y0, x0y1, x1y1 )
+						out vec4 z1_hash	)		//	generates a random number for each of the 8 cell corners
+{
+	//	gridcell is assumed to be an integer coordinate
+	const vec3 OFFSET = vec3( 55.882355, 63.167774, 52.941177 );
+	const float DOMAIN = 69.0;		//	NOTE:  this can most likely be extended with some tweaking of the other parameters
+	const float SOMELARGEFLOAT = 69412.070313;
+	const vec3 SCALE = vec3( 0.235142, 0.205890, 0.216449 );
+
+	//	truncate the domain
+	gridcell = gridcell - floor(gridcell * ( 1.0 / DOMAIN )) * DOMAIN;
+	vec3 gridcell_inc1 = step( gridcell, vec3( DOMAIN - 1.5 ) ) * ( gridcell + 1.0 );
+
+	//	calculate the noise
+	gridcell = ( gridcell * SCALE ) + OFFSET;
+	gridcell_inc1 = ( gridcell_inc1 * SCALE ) + OFFSET;
+	gridcell *= gridcell;
+	gridcell_inc1 *= gridcell_inc1;
+
+	vec4 x0y0_x1y0_x0y1_x1y1 = vec4( gridcell.x, gridcell_inc1.x, gridcell.x, gridcell_inc1.x ) * vec4( gridcell.yy, gridcell_inc1.yy );
+
+	z0_hash = fract( x0y0_x1y0_x0y1_x1y1 * gridcell.zzzz * ( 1.0 / SOMELARGEFLOAT ) );
+	z1_hash = fract( x0y0_x1y0_x0y1_x1y1 * gridcell_inc1.zzzz * ( 1.0 / SOMELARGEFLOAT ) );
+}
 void FAST32_2_hash_4D( 	vec4 gridcell,
 						out vec4 z0w0_hash,		//  vec4 == ( x0y0, x1y0, x0y1, x1y1 )
 						out vec4 z1w0_hash,
@@ -548,6 +586,7 @@ float Value2D( vec2 P )
 	//	calculate the hash.
 	//	( various hashing methods listed in order of speed )
 	vec4 hash = FAST32_hash_2D( Pi );
+	//vec4 hash = FAST32_2_hash_2D( Pi );
 	//vec4 hash = BBS_hash_2D( Pi );
 	//vec4 hash = SGPP_hash_2D( Pi );
 	//vec4 hash = BBS_hash_hq_2D( Pi );
@@ -573,6 +612,7 @@ float Value3D( vec3 P )
 	//	( various hashing methods listed in order of speed )
 	vec4 hash_lowz, hash_highz;
 	FAST32_hash_3D( Pi, hash_lowz, hash_highz );
+	//FAST32_2_hash_3D( Pi, hash_lowz, hash_highz );
 	//BBS_hash_3D( Pi, hash_lowz, hash_highz );
 	//SGPP_hash_3D( Pi, hash_lowz, hash_highz );
 
@@ -583,6 +623,10 @@ float Value3D( vec3 P )
 	return mix( res1.x, res1.y, blend.x );
 }
 
+//
+//	Value Noise 4D
+//	Return value range of 0.0->1.0
+//
 float Value4D( vec4 P )
 {
 	//	establish our grid cell and unit position
@@ -1041,6 +1085,11 @@ float Cellular3D(vec3 P)
 }
 
 
+//
+//	NOTE:
+//	This noise is not yet finished.
+//	At the moment it is only giving one "dot" per gridcell.  It really needs to give at least two.
+//
 /*
 //
 //	SparseConvolution2D
