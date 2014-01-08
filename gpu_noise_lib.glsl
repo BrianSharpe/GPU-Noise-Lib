@@ -1091,6 +1091,7 @@ float Cellular2D(vec2 P)
 }
 
 
+
 //
 //	Cellular Noise 3D
 //	Based off Stefan Gustavson's work at http://www.itn.liu.se/~stegu/GLSL-cellular
@@ -2159,7 +2160,86 @@ vec4 PerlinSurflet3D_Deriv( vec3 P )
     return vec4( dot( m3_0, grad_results_0 ) + dot( m3_1, grad_results_1 ) , vec3(xderiv_0,yderiv_0,zderiv_0) + vec3(xderiv_1,yderiv_1,zderiv_1) ) * FINAL_NORMALIZATION;
 }
 
+//
+//	Cellular2D_Deriv
+//	Cellular 2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
+vec3 Cellular2D_Deriv(vec2 P)
+{
+    //	establish our grid cell and unit position
+    vec2 Pi = floor(P);
+    vec2 Pf = P - Pi;
 
+    //	calculate the hash.
+    //	( various hashing methods listed in order of speed )
+    vec4 hash_x, hash_y;
+    FAST32_hash_2D( Pi, hash_x, hash_y );
+    //SGPP_hash_2D( Pi, hash_x, hash_y );
+
+    //	generate the 4 random points
+    //	restrict the random point offset to eliminate artifacts
+    //	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+    const float JITTER_WINDOW = 0.25;	// 0.25 will guarentee no artifacts.  0.25 is the intersection on x of graphs f(x)=( (0.5+(0.5-x))^2 + (0.5-x)^2 ) and f(x)=( (0.5+x)^2 + x^2 )
+    hash_x = Cellular_weight_samples( hash_x ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+    hash_y = Cellular_weight_samples( hash_y ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+
+    //	return the closest squared distance ( + derivs )
+    //  thanks to Jonathan Dupuy for the initial implementation
+    vec4 dx = Pf.xxxx - hash_x;
+    vec4 dy = Pf.yyyy - hash_y;
+    vec4 d = dx * dx + dy * dy;
+    vec3 t1 = d.x < d.y ? vec3( d.x, dx.x, dy.x ) : vec3( d.y, dx.y, dy.y );
+    vec3 t2 = d.z < d.w ? vec3( d.z, dx.z, dy.z ) : vec3( d.w, dx.w, dy.w );
+    return ( t1.x < t2.x ? t1 : t2 ) * vec3( 1.0, 2.0, 2.0 ) * ( 1.0 / 1.125 ); //	scale return value from 0.0->1.125 to 0.0->1.0  ( 0.75^2 * 2.0  == 1.125 )
+}
+
+//
+//	Cellular3D Deriv
+//	Cellular3D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
+vec4 Cellular3D_Deriv(vec3 P)
+{
+    //	establish our grid cell and unit position
+    vec3 Pi = floor(P);
+    vec3 Pf = P - Pi;
+
+    //	calculate the hash.
+    //	( various hashing methods listed in order of speed )
+    vec4 hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1;
+    FAST32_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
+    //SGPP_hash_3D( Pi, hash_x0, hash_y0, hash_z0, hash_x1, hash_y1, hash_z1 );
+
+    //	generate the 8 random points
+    //	restrict the random point offset to eliminate artifacts
+    //	we'll improve the variance of the noise by pushing the points to the extremes of the jitter window
+    const float JITTER_WINDOW = 0.166666666;	// 0.166666666 will guarentee no artifacts. It is the intersection on x of graphs f(x)=( (0.5 + (0.5-x))^2 + 2*((0.5-x)^2) ) and f(x)=( 2 * (( 0.5 + x )^2) + x * x )
+    hash_x0 = Cellular_weight_samples( hash_x0 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+    hash_y0 = Cellular_weight_samples( hash_y0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+    hash_x1 = Cellular_weight_samples( hash_x1 ) * JITTER_WINDOW + vec4(0.0, 1.0, 0.0, 1.0);
+    hash_y1 = Cellular_weight_samples( hash_y1 ) * JITTER_WINDOW + vec4(0.0, 0.0, 1.0, 1.0);
+    hash_z0 = Cellular_weight_samples( hash_z0 ) * JITTER_WINDOW + vec4(0.0, 0.0, 0.0, 0.0);
+    hash_z1 = Cellular_weight_samples( hash_z1 ) * JITTER_WINDOW + vec4(1.0, 1.0, 1.0, 1.0);
+
+    //	return the closest squared distance ( + derivs )
+    //  thanks to Jonathan Dupuy for the initial implementation
+    vec4 dx1 = Pf.xxxx - hash_x0;
+    vec4 dy1 = Pf.yyyy - hash_y0;
+    vec4 dz1 = Pf.zzzz - hash_z0;
+    vec4 dx2 = Pf.xxxx - hash_x1;
+    vec4 dy2 = Pf.yyyy - hash_y1;
+    vec4 dz2 = Pf.zzzz - hash_z1;
+    vec4 d1 = dx1 * dx1 + dy1 * dy1 + dz1 * dz1;
+    vec4 d2 = dx2 * dx2 + dy2 * dy2 + dz2 * dz2;
+    vec4 r1 = d1.x < d1.y ? vec4( d1.x, dx1.x, dy1.x, dz1.x ) : vec4( d1.y, dx1.y, dy1.y, dz1.y );
+    vec4 r2 = d1.z < d1.w ? vec4( d1.z, dx1.z, dy1.z, dz1.z ) : vec4( d1.w, dx1.w, dy1.w, dz1.w );
+    vec4 r3 = d2.x < d2.y ? vec4( d2.x, dx2.x, dy2.x, dz2.x ) : vec4( d2.y, dx2.y, dy2.y, dz2.y );
+    vec4 r4 = d2.z < d2.w ? vec4( d2.z, dx2.z, dy2.z, dz2.z ) : vec4( d2.w, dx2.w, dy2.w, dz2.w );
+    vec4 t1 = r1.x < r2.x ? r1 : r2;
+    vec4 t2 = r3.x < r4.x ? r3 : r4;
+    return ( t1.x < t2.x ? t1 : t2 ) * vec4( 1.0, vec3( 2.0 ) ) * ( 9.0 / 12.0 );	//	scale return value from 0.0->1.333333 to 0.0->1.0  	(2/3)^2 * 3  == (12/9) == 1.333333
+}
 
 //
 //	SimplexPerlin2D_Deriv
