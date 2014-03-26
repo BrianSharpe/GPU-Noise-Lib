@@ -593,8 +593,8 @@ float Value2D( vec2 P )
 
     //	blend the results and return
     vec2 blend = Interpolation_C2( Pf );
-    vec2 res0 = mix( hash.xy, hash.zw, blend.y );
-    return mix( res0.x, res0.y, blend.x );
+    vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
+    return dot( hash, blend2.zxzx * blend2.wwyy );
 }
 
 //
@@ -619,8 +619,8 @@ float Value3D( vec3 P )
     //	blend the results and return
     vec3 blend = Interpolation_C2( Pf );
     vec4 res0 = mix( hash_lowz, hash_highz, blend.z );
-    vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-    return mix( res1.x, res1.y, blend.x );
+    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );
+    return dot( res0, blend2.zxzx * blend2.wwyy );
 }
 
 //
@@ -642,11 +642,12 @@ float Value4D( vec4 P )
 
     //	blend the results and return
     vec4 blend = Interpolation_C2( Pf );
-    vec4 res0 = mix( z0w0_hash, z0w1_hash, blend.w );
-    vec4 res1 = mix( z1w0_hash, z1w1_hash, blend.w );
-    res0 = mix( res0, res1, blend.z );
-    vec2 res2 = mix( res0.xy, res0.zw, blend.y );
-    return mix( res2.x, res2.y, blend.x );
+    vec4 blend2 = vec4( 1.0 ) - blend;
+    vec4 res0 = z0w0_hash * blend2.wwww + z0w1_hash * blend.wwww;
+    vec4 res1 = z1w0_hash * blend2.wwww + z1w1_hash * blend.wwww;
+    res0 = res0 * blend2.zzzz + res1 * blend.zzzz;
+    blend.zw = blend2.xy;
+    return dot( res0, blend.zxzx * blend.wwyy );
 }
 
 //
@@ -681,8 +682,8 @@ float Perlin2D( vec2 P )
     //	Classic Perlin Interpolation
     grad_results *= 1.4142135623730950488016887242097;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.5)
     vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
-    vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
-    return mix( res0.x, res0.y, blend.x );
+    vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
+    return dot( grad_results, blend2.zxzx * blend2.wwyy );
 #else
     //	Classic Perlin Surflet
     //	http://briansharpe.wordpress.com/2012/03/09/modifications-to-classic-perlin-noise/
@@ -717,8 +718,8 @@ float Perlin2D( vec2 P )
 
     //	blend the results and return
     vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
-    vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
-    return mix( res0.x, res0.y, blend.x );
+    vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
+    return dot( grad_results, blend2.zxzx * blend2.wwyy );
 
 #endif
 
@@ -762,8 +763,8 @@ float Perlin3D( vec3 P )
     //	Classic Perlin Interpolation
     vec3 blend = Interpolation_C2( Pf );
     vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
-    vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-    float final = mix( res1.x, res1.y, blend.x );
+    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );
+    float final = dot( res0, blend2.zxzx * blend2.wwyy );
     final *= 1.1547005383792515290182975610039;		//	(optionally) scale things to a strict -1.0->1.0 range    *= 1.0/sqrt(0.75)
     return final;
 #else
@@ -813,9 +814,8 @@ float Perlin3D( vec3 P )
     //	blend the gradients and return
     vec3 blend = Interpolation_C2( Pf );
     vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
-    vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-    return mix( res1.x, res1.y, blend.x ) * (2.0 / 3.0);	//	(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range
-
+    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );
+    return dot( res0, blend2.zxzx * blend2.wwyy ) * (2.0 / 3.0);	//	(optionally) mult by (2.0/3.0) to scale to a strict -1.0->1.0 range
 #endif
 
 }
@@ -876,11 +876,12 @@ float Perlin4D( vec4 P )
 
     // Classic Perlin Interpolation
     vec4 blend = Interpolation_C2( Pf );
-    vec4 res0 = mix( grad_results_lowz_loww, grad_results_lowz_highw, blend.w );
-    vec4 res1 = mix( grad_results_highz_loww, grad_results_highz_highw, blend.w );
-    res0 = mix( res0, res1, blend.z );
-    vec2 res2 = mix( res0.xy, res0.zw, blend.y );
-    return mix( res2.x, res2.y, blend.x );
+    vec4 blend2 = vec4( 1.0 ) - blend;
+    vec4 res0 = grad_results_lowz_loww * blend2.wwww + grad_results_lowz_highw * blend.wwww;
+    vec4 res1 = grad_results_highz_loww * blend2.wwww + grad_results_highz_highw * blend.wwww;
+    res0 = res0 * blend2.zzzz + res1 * blend.zzzz;
+    blend.zw = blend2.xy;
+    return dot( res0, blend.zxzx * blend.wwyy );
 }
 
 
@@ -910,8 +911,8 @@ float ValuePerlin2D( vec2 P, float blend_val )
 
     //	blend the results and return
     vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
-    vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
-    return mix( res0.x, res0.y, blend.x );
+    vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
+    return dot( grad_results, blend2.zxzx * blend2.wwyy );
 }
 
 
@@ -950,8 +951,8 @@ float ValuePerlin3D( vec3 P, float blend_val )
     //	blend the gradients and return
     vec3 blend = Interpolation_C2( Pf );
     vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
-    vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-    return mix( res1.x, res1.y, blend.x );
+    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );
+    return dot( res0, blend2.zxzx * blend2.wwyy );
 }
 
 
@@ -984,8 +985,8 @@ float Cubist2D( vec2 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
 
     //	blend the results and return
     vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
-    vec2 res0 = mix( grad_results.xy, grad_results.zw, blend.y );
-    float final = mix( res0.x, res0.y, blend.x );
+    vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
+    float final = dot( grad_results, blend2.zxzx * blend2.wwyy );
 
     //	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
     return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
@@ -1030,8 +1031,8 @@ float Cubist3D( vec3 P, vec2 range_clamp )	// range_clamp.x = low, range_clamp.y
     //	blend the gradients and return
     vec3 blend = Interpolation_C2( Pf );
     vec4 res0 = mix( grad_results_0, grad_results_1, blend.z );
-    vec2 res1 = mix( res0.xy, res0.zw, blend.y );
-    float final = mix( res1.x, res1.y, blend.x );
+    vec4 blend2 = vec4( blend.xy, vec2( 1.0 - blend.xy ) );
+    float final = dot( res0, blend2.zxzx * blend2.wwyy );
 
     //	the 1.0/grad calculation pushes the result to a possible to +-infinity.  Need to clamp to keep things sane
     return clamp( ( final - range_clamp.x ) * range_clamp.y, 0.0, 1.0 );
