@@ -642,11 +642,10 @@ float Value4D( vec4 P )
 
     //	blend the results and return
     vec4 blend = Interpolation_C2( Pf );
-    vec4 blend2 = vec4( 1.0 ) - blend;
-    vec4 res0 = z0w0_hash * blend2.wwww + z0w1_hash * blend.wwww;
-    vec4 res1 = z1w0_hash * blend2.wwww + z1w1_hash * blend.wwww;
-    res0 = res0 * blend2.zzzz + res1 * blend.zzzz;
-    blend.zw = blend2.xy;
+    vec4 res0 = z0w0_hash + ( z0w1_hash - z0w0_hash ) * blend.wwww;
+    vec4 res1 = z1w0_hash + ( z1w1_hash - z1w0_hash ) * blend.wwww;
+    res0 = res0 + ( res1 - res0 ) * blend.zzzz;
+    blend.zw = vec2( 1.0 - blend.xy );
     return dot( res0, blend.zxzx * blend.wwyy );
 }
 
@@ -876,11 +875,10 @@ float Perlin4D( vec4 P )
 
     // Classic Perlin Interpolation
     vec4 blend = Interpolation_C2( Pf );
-    vec4 blend2 = vec4( 1.0 ) - blend;
-    vec4 res0 = grad_results_lowz_loww * blend2.wwww + grad_results_lowz_highw * blend.wwww;
-    vec4 res1 = grad_results_highz_loww * blend2.wwww + grad_results_highz_highw * blend.wwww;
-    res0 = res0 * blend2.zzzz + res1 * blend.zzzz;
-    blend.zw = blend2.xy;
+    vec4 res0 = grad_results_lowz_loww + ( grad_results_lowz_highw - grad_results_lowz_loww ) * blend.wwww;
+    vec4 res1 = grad_results_highz_loww + ( grad_results_highz_highw - grad_results_highz_loww ) * blend.wwww;
+    res0 = res0 + ( res1 - res0 ) * blend.zzzz;
+    blend.zw = vec2( 1.0 ) - blend.xy;
     return dot( res0, blend.zxzx * blend.wwyy );
 }
 
@@ -1399,8 +1397,7 @@ float SimplexPerlin2D( vec2 P )
     vec3 m = vec3( v0.x, v12.xz ) * vec3( v0.x, v12.xz ) + vec3( v0.y, v12.yw ) * vec3( v0.y, v12.yw );
     m = max(0.5 - m, 0.0);		//	The 0.5 here is SIMPLEX_TRI_HEIGHT^2
     m = m*m;
-    m = m*m;
-    return dot(m, grad_results) * FINAL_NORMALIZATION;
+    return dot(m*m, grad_results) * FINAL_NORMALIZATION;
 }
 
 //
