@@ -465,12 +465,12 @@ void FAST32_2_hash_4D( 	vec4 gridcell,
     gridcell_inc1 *= gridcell_inc1;
 
     vec4 x0y0_x1y0_x0y1_x1y1 = vec4( gridcell.x, gridcell_inc1.x, gridcell.x, gridcell_inc1.x ) * vec4( gridcell.yy, gridcell_inc1.yy );
-    vec4 z0w0_z1w0_z0w1_z1w1 = vec4( gridcell.z, gridcell_inc1.z, gridcell.z, gridcell_inc1.z ) * vec4( gridcell.ww, gridcell_inc1.ww );
+    vec4 z0w0_z1w0_z0w1_z1w1 = vec4( gridcell.z, gridcell_inc1.z, gridcell.z, gridcell_inc1.z ) * vec4( gridcell.ww, gridcell_inc1.ww ) * ( 1.0 / SOMELARGEFLOAT );
 
-    z0w0_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.xxxx * ( 1.0 / SOMELARGEFLOAT ) );
-    z1w0_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.yyyy * ( 1.0 / SOMELARGEFLOAT ) );
-    z0w1_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.zzzz * ( 1.0 / SOMELARGEFLOAT ) );
-    z1w1_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.wwww * ( 1.0 / SOMELARGEFLOAT ) );
+    z0w0_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.xxxx );
+    z1w0_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.yyyy );
+    z0w1_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.zzzz );
+    z1w1_hash = fract( x0y0_x1y0_x0y1_x1y1 * z0w0_z1w0_z0w1_z1w1.wwww );
 }
 void FAST32_2_hash_4D( 	vec4 gridcell,
                         out vec4 z0w0_hash_0,		//  vec4 == ( x0y0, x1y0, x0y1, x1y1 )
