@@ -549,7 +549,7 @@ float Interpolation_C2( float x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 1
 vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec3 Interpolation_C2( vec3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 vec4 Interpolation_C2( vec4 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
-vec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec4( 6.0, 6.0, 0.0, 0.0 ) + vec4( -15.0, -15.0, 30.0, 30.0 ) ) + vec4( 10.0, 10.0, -60.0, -60.0 ) ) + vec4( 0.0, 0.0, 30.0, 30.0 ) ); }
+vec4 Interpolation_C2_InterpAndDeriv( vec2 x ) { return x.xyxy * x.xyxy * ( x.xyxy * ( x.xyxy * ( x.xyxy * vec2( 6.0, 0.0 ).xxyy + vec2( -15.0, 30.0 ).xxyy ) + vec2( 10.0, -60.0 ).xxyy ) + vec2( 0.0, 30.0 ).xxyy ); }
 vec3 Interpolation_C2_Deriv( vec3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }
 
 float Interpolation_C2_Fast( float x ) { float x3 = x*x*x; return ( 7.0 + ( x3 - 7.0 ) * x ) * x3; }   //  7x^3-7x^4+x^7   ( Faster than Perlin Quintic.  Not quite as good shape. )
@@ -1962,6 +1962,57 @@ vec4 Value3D_Deriv( vec3 P )
     return vec4( res1.x, 0.0, 0.0, 0.0 ) + ( vec4( res1.yyw, res4.y ) - vec4( res1.xxz, res4.x ) ) * vec4( blend.x, Interpolation_C2_Deriv( Pf ) );
 }
 
+
+//
+//	Perlin2D_Deriv
+//	Classic Perlin 2D noise with derivatives
+//	returns vec3( value, xderiv, yderiv )
+//
+vec3 Perlin2D_Deriv( vec2 P )
+{
+    //  https://github.com/BrianSharpe/Wombat/blob/master/Perlin2D_Deriv.glsl
+
+    // establish our grid cell and unit position
+    vec2 Pi = floor(P);
+    vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
+
+    //	calculate the hash.
+    //	( various hashing methods listed in order of speed )
+    vec4 hash_x, hash_y;
+    FAST32_hash_2D( Pi, hash_x, hash_y );
+    //SGPP_hash_2D( Pi, hash_x, hash_y );
+
+    //	calculate the gradient results
+    vec4 grad_x = hash_x - 0.49999;
+    vec4 grad_y = hash_y - 0.49999;
+    vec4 norm = inversesqrt( grad_x * grad_x + grad_y * grad_y );
+    grad_x *= norm;
+    grad_y *= norm;
+    vec4 dotval = ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
+
+    //	Convert our data to a more parallel format
+    vec3 dotval0_grad0 = vec3( dotval.x, grad_x.x, grad_y.x );
+    vec3 dotval1_grad1 = vec3( dotval.y, grad_x.y, grad_y.y );
+    vec3 dotval2_grad2 = vec3( dotval.z, grad_x.z, grad_y.z );
+    vec3 dotval3_grad3 = vec3( dotval.w, grad_x.w, grad_y.w );
+
+    //	evaluate common constants
+    vec3 k0_gk0 = dotval1_grad1 - dotval0_grad0;
+    vec3 k1_gk1 = dotval2_grad2 - dotval0_grad0;
+    vec3 k2_gk2 = dotval3_grad3 - dotval2_grad2 - k0_gk0;
+
+    //	C2 Interpolation
+    vec4 blend = Interpolation_C2_InterpAndDeriv( Pf_Pfmin1.xy );
+
+    //	calculate final noise + deriv
+    vec3 results = dotval0_grad0
+                    + blend.x * k0_gk0
+                    + blend.y * ( k1_gk1 + blend.x * k2_gk2 );
+
+    results.yz += blend.zw * ( vec2( k0_gk0.x, k1_gk1.x ) + blend.yx * k2_gk2.xx );
+
+    return results * 1.4142135623730950488016887242097;  // scale things to a strict -1.0->1.0 range  *= 1.0/sqrt(0.5)
+}
 
 //
 //	Perlin3D_Deriv
